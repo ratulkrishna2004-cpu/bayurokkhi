@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BAYUROKKHI - Next-Gen Environmental Intelligence Platform</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Leaflet Free JS & CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    body { background-color: #0b1329; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+    .tab-btn.active { background-color: #1e293b; color: #38bdf8; border-bottom: 2px solid #38bdf8; }
+    #nodeMap, #summaryMap { height: 280px; border-radius: 0.75rem; z-index: 1; width: 100%; }
+    .gauge-circle {
+      position: relative; width: 95px; height: 95px; border-radius: 50%;
+      background: conic-gradient(#10b981 0% 33%, #f59e0b 33% 66%, #ef4444 66% 100%);
+      display: flex; align-items: center; justify-content: center; margin: 0 auto;
+    }
+    .gauge-inner {
+      width: 75px; height: 75px; background: #0f172a; border-radius: 50%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+
+    /* BOLD CENTERED BRANDING WITH NEON ANIMATED GLOW */
+    .brand-glow-hero {
+      background: linear-gradient(135deg, #10b981 0%, #38bdf8 33%, #8b5cf6 66%, #10b981 100%);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: neonGlowFlow 5s ease infinite;
+      filter: drop-shadow(0 0 14px rgba(16, 185, 129, 0.5));
+      transition: all 0.3s ease;
+      letter-spacing: 0.1em;
+    }
+    .brand-glow-hero:hover {
+      filter: drop-shadow(0 0 25px rgba(56, 189, 248, 0.9));
+      transform: scale(1.03);
+    }
+    @keyframes neonGlowFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+  </style>
+</head>
+<body class="p-4 md:p-6 min-h-screen flex flex-col justify-between">
+
+  <div>
+    <!-- Top System Header -->
+    <header class="flex flex-col lg:flex-row justify-between items-center bg-slate-900/90 p-4 rounded-xl border border-slate-800 mb-4 gap-4 shadow-2xl relative">
+      
+     <!-- Left Project Logo -->
+<div class="flex items-center gap-3">
+  <a href="#" onclick="showMainView('overviewView')" class="block">
+    <img src="Logo.png" alt="BAYUROKKHI Logo" class="h-12 w-auto object-contain hover:scale-105 transition-transform duration-200">
+  </a>
+  <span id="sessionStatusBadge" class="hidden">User Mode: Public Guest</span>
+      </div>
+
+      <!-- CENTERED BRAND HEADER (BAYUROKKHI) -->
+      <div class="text-center cursor-pointer my-1 lg:my-0" onclick="showMainView('overviewView')">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-black brand-glow-hero uppercase">BAYUROKKHI</h1>
+        <p class="text-slate-400 text-[11px] tracking-widest uppercase font-medium">Environmental Intelligence & AI Forecast System</p>
+      </div>
+
+      <!-- Right Action Buttons -->
+      <div class="flex flex-wrap items-center justify-center gap-2">
+        <button onclick="showMainView('overviewView')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+          <i class="fa-solid fa-border-all mr-1"></i> All Nodes
+        </button>
+        <button onclick="openFleetSummaryModal()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/30 transition">
+          <i class="fa-solid fa-chart-pie mr-1"></i> All Summary
+        </button>
+        
+        <!-- Coordinator Sign In / Sign Up Button -->
+        <button id="coordAuthBtn" onclick="openCoordAuthModal()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30 transition">
+          <i class="fa-solid fa-user-gear mr-1"></i> Co-Ordinator Sign In / Sign Up
+        </button>
+
+        <!-- Admin Control Button -->
+        <button id="adminAuthBtn" onclick="openAdminAuthModal()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition shadow">
+          <i class="fa-solid fa-lock mr-1"></i> Admin Control
+        </button>
+
+        <!-- Manual Logout Button (Visible when logged in) -->
+        <button id="globalLogoutBtn" onclick="performLogout()" class="hidden px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition">
+          <i class="fa-solid fa-right-from-bracket mr-1"></i> Sign Out
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN VIEW 1: FLEET OVERVIEW GRID -->
+    <section id="overviewView" class="space-y-6">
+      <div class="flex justify-between items-center">
+        <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-microchip text-emerald-400"></i> Connected ESP32 Fleet
+        </h2>
+        <span class="text-xs text-slate-500">Select any registered node to open Dashboard</span>
+      </div>
+
+      <div id="nodesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    </section>
+
+    <!-- MAIN VIEW 2: NODE SPECIFIC FULL DASHBOARD -->
+    <section id="nodeDetailView" class="hidden space-y-4">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900/80 p-3 rounded-xl border border-slate-800 gap-2">
+        <button onclick="showMainView('overviewView')" class="text-xs text-emerald-400 font-semibold hover:underline flex items-center gap-1">
+          <i class="fa-solid fa-arrow-left"></i> Back to Fleet Overview
+        </button>
+        
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Public Issue Reporting Buttons -->
+          <button onclick="triggerNodeReport('Repair')" class="px-2.5 py-1 rounded bg-amber-600/20 text-amber-400 border border-amber-500/30 hover:bg-amber-600/30 text-xs font-bold transition">
+            <i class="fa-solid fa-wrench mr-1"></i> Repair Data
+          </button>
+          <button onclick="triggerNodeReport('Emergency')" class="px-2.5 py-1 rounded bg-rose-600/20 text-rose-400 border border-rose-500/30 hover:bg-rose-600/30 text-xs font-bold transition">
+            <i class="fa-solid fa-triangle-exclamation mr-1"></i> Emergency Alert
+          </button>
+          
+          <h2 id="activeNodeTitle" class="text-sm font-bold text-white font-mono ml-2">ESP32-NODE Dashboard</h2>
+        </div>
+      </div>
+
+      <!-- SURVEILLANCE / MAINTENANCE WARNING BANNER (Shown if open ticket exists) -->
+      <div id="nodeSurveillanceBanner" class="hidden bg-amber-500/20 border border-amber-500/50 p-3 rounded-xl flex items-center gap-3 text-amber-300 text-xs font-medium">
+        <i class="fa-solid fa-shield-cat text-lg text-amber-400"></i>
+        <span><strong>SURVEILLANCE NOTICE:</strong> Data from this node may vary from real physical conditions. System is currently undergoing inspection / maintenance.</span>
+      </div>
+
+      <!-- EXCLUSIVE AUTHORIZED DOWNLOAD PANEL (Admin & Coordinator Only) -->
+      <div id="authorizedDownloadPanel" class="hidden bg-blue-950/40 border border-blue-500/30 p-3 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-2 text-blue-300 font-semibold">
+          <i class="fa-solid fa-user-shield text-blue-400"></i> Authorized Actions Unlocked
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="downloadDataSheet()" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold transition">
+            <i class="fa-solid fa-file-csv mr-1"></i> Download CSV Data Sheet
+          </button>
+          <button onclick="downloadAerialVideo()" class="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition">
+            <i class="fa-solid fa-download mr-1"></i> Download Aerial Video
+          </button>
+        </div>
+      </div>
+
+      <!-- NAVBAR TABS -->
+      <div class="flex overflow-x-auto bg-slate-900 rounded-lg border border-slate-800 p-1 text-xs gap-1">
+        <button onclick="switchTab('tabLive')" id="btn-tabLive" class="tab-btn active px-3 py-1.5 rounded font-semibold whitespace-nowrap">Live Gauges & Satellite Map</button>
+        <button onclick="switchTab('tabAqi')" id="btn-tabAqi" class="tab-btn px-3 py-1.5 rounded font-semibold whitespace-nowrap">AQI Analysis</button>
+        <button onclick="switchTab('tabAi')" id="btn-tabAi" class="tab-btn px-3 py-1.5 rounded font-semibold whitespace-nowrap">AI Prediction (LSTM)</button>
+        <button onclick="switchTab('tabReports')" id="btn-tabReports" class="tab-btn px-3 py-1.5 rounded font-semibold whitespace-nowrap">Historical Logs</button>
+      </div>
+
+      <!-- TAB 1: LIVE MONITORING & MAP & VIDEO -->
+      <div id="tabLive" class="tab-content space-y-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+          <div class="text-center space-y-1"><span class="text-[11px] font-bold text-slate-400">PM2.5</span><div class="gauge-circle"><div class="gauge-inner"><span id="gPm25" class="text-lg font-bold text-white">42</span></div></div></div>
+          <div class="text-center space-y-1"><span class="text-[11px] font-bold text-slate-400">PM10</span><div class="gauge-circle"><div class="gauge-inner"><span id="gPm10" class="text-lg font-bold text-white">65</span></div></div></div>
+          <div class="text-center space-y-1"><span class="text-[11px] font-bold text-slate-400">CO2</span><div class="gauge-circle"><div class="gauge-inner"><span id="gCo2" class="text-lg font-bold text-white">410</span></div></div></div>
+          <div class="text-center space-y-1"><span class="text-[11px] font-bold text-slate-400">NO2</span><div class="gauge-circle"><div class="gauge-inner"><span id="gNo2" class="text-lg font-bold text-white">28</span></div></div></div>
+          <div class="text-center space-y-1"><span class="text-[11px] font-bold text-slate-400">Temp (°C)</span><div class="gauge-circle"><div class="gauge-inner"><span id="gTemp" class="text-lg font-bold text-white">29</span></div></div></div>
+          <div class="text-center space-y-1"><span class="text-[11px] font-bold text-slate-400">Humidity (%)</span><div class="gauge-circle"><div class="gauge-inner"><span id="gHum" class="text-lg font-bold text-white">62</span></div></div></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="lg:col-span-2 bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="text-xs font-bold text-white"><i class="fa-solid fa-chart-line text-emerald-400"></i> Sensor Real-Time Telemetry</h3>
+              <button onclick="refreshChart('liveTrendChart')" class="text-xs text-slate-400 hover:text-white p-1 rounded bg-slate-800 border border-slate-700" title="Refresh Graph"><i class="fa-solid fa-rotate"></i></button>
+            </div>
+            <div class="h-64"><canvas id="liveTrendChart"></canvas></div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2">
+              <h3 class="font-bold text-white text-xs flex items-center gap-2">
+                <i class="fa-solid fa-plane-drone text-emerald-400"></i> Drone Aerial Video
+              </h3>
+              <video id="nodeVideo" controls class="w-full h-32 bg-black rounded border border-slate-800 object-cover">
+                <source id="nodeVideoSrc" src="" type="video/mp4">
+              </video>
+            </div>
+            
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+              <h3 class="font-bold text-white text-xs mb-2 flex items-center justify-between">
+                <span><i class="fa-solid fa-satellite text-rose-400"></i> HD Satellite Map & Hotspots</span>
+                <span id="coordDisplay" class="text-[10px] text-slate-400 font-mono"></span>
+              </h3>
+              <div id="nodeMap"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: AQI DASHBOARD -->
+      <div id="tabAqi" class="tab-content hidden space-y-4">
+        <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 text-center space-y-2">
+          <h3 class="text-xs font-bold text-slate-400 uppercase">Computed Air Quality Index</h3>
+          <div class="text-4xl font-extrabold text-amber-400">74 (Moderate)</div>
+          <p class="text-xs text-slate-400">Air quality is acceptable for most citizens.</p>
+        </div>
+      </div>
+
+      <!-- TAB 3: AI PREDICTION -->
+      <div id="tabAi" class="tab-content hidden space-y-4">
+        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-xs font-bold text-white">12-Hour LSTM AQI Forecast</h3>
+            <button onclick="refreshChart('aiForecastChart')" class="text-xs text-slate-400 hover:text-white p-1 rounded bg-slate-800 border border-slate-700" title="Refresh Graph"><i class="fa-solid fa-rotate"></i></button>
+          </div>
+          <div class="h-56"><canvas id="aiForecastChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- TAB 4: HISTORICAL LOGS -->
+      <div id="tabReports" class="tab-content hidden space-y-4">
+        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-3">
+          <h3 class="text-xs font-bold text-white">Exportable Telemetry History</h3>
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="bg-slate-950 text-slate-400">
+              <tr><th class="p-2">Timestamp</th><th class="p-2">PM2.5</th><th class="p-2">PM10</th><th class="p-2">AQI</th></tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 text-slate-300">
+              <tr><td class="p-2">Today 01:00 PM</td><td class="p-2">42.1</td><td class="p-2">65.0</td><td class="p-2 text-amber-400 font-bold">74</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN VIEW 3: ADMIN CONTROL CENTER & MESSAGE BOX -->
+    <section id="adminDashboardView" class="hidden space-y-6">
+      <div class="flex justify-between items-center bg-blue-950/40 p-4 rounded-xl border border-blue-500/30">
+        <div>
+          <h2 class="text-md font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-user-shield text-blue-400"></i> Admin System Control Center
+          </h2>
+          <p class="text-xs text-slate-400">Manage Hardware Fleet, Member Node Assignment & Issue Message Box</p>
+        </div>
+        <button onclick="performLogout()" class="px-3 py-1.5 rounded text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition">Exit Admin</button>
+      </div>
+
+      <!-- SYSTEM MESSAGE BOX (Central Complaint / Repair / Emergency Desk) -->
+      <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 space-y-3">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+          <h3 class="text-xs font-bold text-amber-400 uppercase flex items-center gap-2">
+            <i class="fa-solid fa-inbox text-amber-400"></i> Central Issue Message Box & Node Incident Tracker
+          </h3>
+          <span class="text-[10px] text-slate-400 font-mono" id="msgBoxCounter">0 Total Reports</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950 text-slate-400">
+              <tr><th class="p-2">Time</th><th class="p-2">Node ID & Location</th><th class="p-2">Issue Type</th><th class="p-2">Details / Message</th><th class="p-2">Status</th><th class="p-2 text-right">Action</th></tr>
+            </thead>
+            <tbody id="messageBoxTable" class="divide-y divide-slate-800"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="space-y-6">
+          <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 space-y-3">
+            <h3 id="formHeaderTitle" class="text-xs font-bold text-blue-400 uppercase"><i class="fa-solid fa-plus-circle mr-1"></i> Register New ESP32 Node</h3>
+            <form onsubmit="handleHardwareSubmit(event)" class="space-y-3 text-xs">
+              <input type="hidden" id="editOriginalId" value="">
+              <div><label class="text-slate-400 block mb-1">ESP32 Device ID</label><input type="text" id="addHwId" required placeholder="e.g. ESP32-CAMPUS-01" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-white font-mono"></div>
+              <div><label class="text-slate-400 block mb-1">Location Name</label><input type="text" id="addHwName" required placeholder="e.g. AUST Campus Field" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-white"></div>
+              <div class="grid grid-cols-2 gap-2">
+                <div><label class="text-slate-400 block mb-1">Latitude</label><input type="number" step="any" id="addHwLat" required placeholder="23.7639" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-white font-mono"></div>
+                <div><label class="text-slate-400 block mb-1">Longitude</label><input type="number" step="any" id="addHwLng" required placeholder="90.4068" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-white font-mono"></div>
+              </div>
+              <div><label class="text-slate-400 block mb-1">Drone Video MP4 Link</label><input type="url" id="addHwVideo" required placeholder="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-white"></div>
+              <div class="flex gap-2">
+                <button type="submit" id="submitHwBtn" class="w-full bg-blue-600 hover:bg-blue-500 font-bold py-2 rounded text-white transition">Save Node Configuration</button>
+                <button type="button" id="cancelEditBtn" onclick="resetForm()" class="hidden bg-slate-700 hover:bg-slate-600 text-white font-bold px-3 py-2 rounded transition">Cancel</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 space-y-3">
+            <h3 class="text-xs font-bold text-emerald-400 uppercase"><i class="fa-solid fa-user-check mr-1"></i> Manually Assign Team Member</h3>
+            <form onsubmit="handleManualMemberAdd(event)" class="space-y-3 text-xs">
+              <div><label class="text-slate-400 block mb-1">Member Full Name</label><input type="text" id="manualMemName" required placeholder="Full Name" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-white"></div>
+              <div><label class="text-slate-400 block mb-1">Email Address</label><input type="email" id="manualMemEmail" required placeholder="email@domain.com" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-white"></div>
+              <div><label class="text-slate-400 block mb-1">Phone Number</label><input type="tel" id="manualMemPhone" required placeholder="017XXXXXXXX" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-white font-mono"></div>
+              <div><label class="text-slate-400 block mb-1">Account Password</label><input type="text" id="manualMemPass" required placeholder="Set Password" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-white font-mono"></div>
+              <div>
+                <label class="text-slate-400 block mb-1">Assign Post / Role</label>
+                <select id="manualMemRole" class="w-full bg-slate-950 border border-slate-800 p-2 rounded text-white">
+                  <option value="Coordinator">Coordinator</option>
+                  <option value="Admin">Admin</option>
+                </select>
+              </div>
+              <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold py-2 rounded text-white transition">Assign & Grant Access</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="lg:col-span-2 space-y-6">
+          <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800">
+            <h3 class="text-xs font-bold text-amber-400 uppercase mb-3"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Pending Applications</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-950 text-slate-400">
+                  <tr><th class="p-2">Applicant</th><th class="p-2">Contact</th><th class="p-2">Password</th><th class="p-2">Reason</th><th class="p-2 text-right">Action</th></tr>
+                </thead>
+                <tbody id="applicationsTable" class="divide-y divide-slate-800"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800">
+            <h3 class="text-xs font-bold text-blue-400 uppercase mb-3"><i class="fa-solid fa-users mr-1"></i> Active Team Credentials & Node Assignment</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-950 text-slate-400">
+                  <tr><th class="p-2">Name / Contact</th><th class="p-2">Password</th><th class="p-2">Role / Swipe</th><th class="p-2">Assigned ESP Node</th><th class="p-2 text-right">Action</th></tr>
+                </thead>
+                <tbody id="membersTable" class="divide-y divide-slate-800"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800">
+            <h3 class="text-xs font-bold text-purple-400 uppercase mb-3"><i class="fa-solid fa-list mr-1"></i> Registered Fleet & Node Controls</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-950 text-slate-400">
+                  <tr><th class="p-2">Device ID</th><th class="p-2">Name</th><th class="p-2">Map Position</th><th class="p-2 text-right">Actions</th></tr>
+                </thead>
+                <tbody id="adminFleetTable" class="divide-y divide-slate-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN VIEW 4: COORDINATOR DASHBOARD & MESSAGE BOX -->
+    <section id="coordinatorDashboardView" class="hidden space-y-6">
+      <div class="flex justify-between items-center bg-emerald-950/40 p-4 rounded-xl border border-emerald-500/30">
+        <div>
+          <h2 class="text-md font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-user-gear text-emerald-400"></i> Co-Ordinator Dedicated Desk
+          </h2>
+          <p class="text-xs text-slate-400" id="coordDeskWelcome">Welcome Coordinator</p>
+        </div>
+        <button onclick="performLogout()" class="px-3 py-1.5 rounded text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition">Sign Out</button>
+      </div>
+
+      <!-- COORDINATOR ASSIGNED NODE & MESSAGE BOX -->
+      <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 space-y-3">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+          <h3 class="text-xs font-bold text-emerald-400 uppercase flex items-center gap-2">
+            <i class="fa-solid fa-envelope-open-text"></i> Assigned Node Messages & Repair Requests
+          </h3>
+          <span class="text-[10px] text-slate-400 font-mono" id="coordMsgCounter">0 Assigned Reports</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950 text-slate-400">
+              <tr><th class="p-2">Time</th><th class="p-2">Node ID & Location</th><th class="p-2">Type</th><th class="p-2">Message</th><th class="p-2">Status</th><th class="p-2 text-right">Action</th></tr>
+            </thead>
+            <tbody id="coordMessageBoxTable" class="divide-y divide-slate-800"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ALL AREA SUMMARY OVERLAY MODAL -->
+  <div id="fleetSummaryModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-3 md:p-6 z-50 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl w-full max-w-6xl space-y-4 max-h-[96vh] flex flex-col justify-between">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div>
+          <h2 class="text-md font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-purple-400"></i> BAYUROKKHI All Area Summary Index
+          </h2>
+          <p class="text-xs text-slate-400">Select any area to view Day-Filtered Historical Patterns, Real-time Stream & AI Predictions.</p>
+        </div>
+        <button onclick="closeFleetSummaryModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-y-auto pr-1">
+        <div class="lg:col-span-5 space-y-2.5 max-h-[380px] overflow-y-auto" id="summaryAreaList"></div>
+
+        <div class="lg:col-span-7 bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col">
+          <h3 class="text-xs font-bold text-slate-300 mb-2 flex items-center justify-between">
+            <span><i class="fa-solid fa-earth-americas text-purple-400 mr-1"></i> Fleet Position Map View</span>
+            <span class="text-[10px] text-slate-500 font-mono">Live ESP Nodes</span>
+          </h3>
+          <div id="summaryMap" class="flex-grow"></div>
+        </div>
+      </div>
+
+      <!-- INTERACTIVE AREA SUB-DASHBOARD -->
+      <div id="areaDetailDashboard" class="hidden bg-slate-950/90 border border-purple-500/30 p-4 rounded-xl space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs bg-purple-600/20 text-purple-300 font-mono px-2 py-0.5 rounded font-bold" id="detailNodeId">ESP32-NODE</span>
+            <h3 class="text-sm font-bold text-white" id="detailAreaName">Area Specific Full Breakdown</h3>
+          </div>
+          <button onclick="closeAreaDetail()" class="text-xs bg-rose-600/20 text-rose-400 hover:bg-rose-600/30 px-2.5 py-1 rounded font-bold transition">
+            <i class="fa-solid fa-arrow-left mr-1"></i> Exit Area Details
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center text-xs">
+          <div class="bg-slate-900 p-2 rounded border border-slate-800"><span class="text-slate-400 block text-[10px]">PM2.5</span><span id="detailPm25" class="font-bold text-amber-400 text-sm">42</span></div>
+          <div class="bg-slate-900 p-2 rounded border border-slate-800"><span class="text-slate-400 block text-[10px]">PM10</span><span id="detailPm10" class="font-bold text-white text-sm">65</span></div>
+          <div class="bg-slate-900 p-2 rounded border border-slate-800"><span class="text-slate-400 block text-[10px]">CO2</span><span id="detailCo2" class="font-bold text-white text-sm">410</span></div>
+          <div class="bg-slate-900 p-2 rounded border border-slate-800"><span class="text-slate-400 block text-[10px]">NO2</span><span id="detailNo2" class="font-bold text-white text-sm">28</span></div>
+          <div class="bg-slate-900 p-2 rounded border border-slate-800"><span class="text-slate-400 block text-[10px]">Temp</span><span id="detailTemp" class="font-bold text-white text-sm">28°C</span></div>
+          <div class="bg-slate-900 p-2 rounded border border-slate-800"><span class="text-slate-400 block text-[10px]">Humidity</span><span id="detailHum" class="font-bold text-white text-sm">62%</span></div>
+        </div>
+
+        <!-- CHART 1: HISTORICAL DATA PATTERN -->
+        <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 space-y-2">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <h4 class="text-xs font-bold text-slate-300"><i class="fa-solid fa-clock-rotate-left text-amber-400 mr-1"></i> Historical Pollution Pattern Analysis</h4>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center gap-1 bg-slate-950 p-1 rounded border border-slate-800 text-[10px]">
+                <button onclick="toggleHistoryView('24h')" id="btnHist24h" class="px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300">24 Hours</button>
+                <button onclick="toggleHistoryView('week')" id="btnHistWeek" class="px-2 py-0.5 rounded font-bold text-slate-400 hover:text-white">Weekly</button>
+              </div>
+              <select id="weeklyDayFilter" onchange="onWeeklyDayFilterChange(this.value)" class="bg-slate-950 border border-slate-800 text-[10px] text-amber-300 rounded px-2 py-1 font-semibold hidden">
+                <option value="overall">Overall Week (Default)</option>
+                <option value="Mon">Monday</option>
+                <option value="Tue">Tuesday</option>
+                <option value="Wed">Wednesday</option>
+                <option value="Thu">Thursday</option>
+                <option value="Fri">Friday</option>
+                <option value="Sat">Saturday</option>
+                <option value="Sun">Sunday</option>
+              </select>
+              <button onclick="refreshChart('summaryHistoricalChart')" class="text-xs text-slate-400 hover:text-white p-1 rounded bg-slate-800 border border-slate-700" title="Refresh Graph"><i class="fa-solid fa-rotate"></i></button>
+            </div>
+          </div>
+          <div class="h-36"><canvas id="summaryHistoricalChart"></canvas></div>
+        </div>
+
+        <!-- CHARTS 2 & 3: LIVE STREAM + AI FORECAST -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 space-y-2">
+            <div class="flex justify-between items-center">
+              <h4 class="text-xs font-bold text-slate-300"><i class="fa-solid fa-bolt text-emerald-400 mr-1"></i> Current Real-Time Live Telemetry</h4>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-mono">Streaming Live</span>
+                <button onclick="refreshChart('summaryRealtimeChart')" class="text-xs text-slate-400 hover:text-white p-1 rounded bg-slate-800 border border-slate-700" title="Refresh Graph"><i class="fa-solid fa-rotate"></i></button>
+              </div>
+            </div>
+            <div class="h-40"><canvas id="summaryRealtimeChart"></canvas></div>
+          </div>
+
+          <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 space-y-2">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <h4 class="text-xs font-bold text-slate-300"><i class="fa-solid fa-brain text-purple-400 mr-1"></i> AI Predictive LSTM Model</h4>
+              <div class="flex items-center gap-2 bg-slate-950 p-1 rounded border border-slate-800">
+                <span class="text-[10px] text-slate-400 font-semibold">Forecast Range:</span>
+                <input type="range" id="aiHourSlider" min="1" max="24" value="12" oninput="updateAiForecastHorizon(this.value)" class="w-20 accent-purple-500 cursor-pointer">
+                <span id="aiHourDisplay" class="text-[10px] font-bold text-purple-300 font-mono">Next 12 Hours</span>
+                <button onclick="refreshChart('summaryAiPredictionChart')" class="text-xs text-slate-400 hover:text-white p-1 rounded bg-slate-800 border border-slate-700 ml-1" title="Refresh Graph"><i class="fa-solid fa-rotate"></i></button>
+              </div>
+            </div>
+
+            <div class="h-40"><canvas id="summaryAiPredictionChart"></canvas></div>
+
+            <div class="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800 text-[10px]">
+              <span class="text-slate-400"><i class="fa-solid fa-robot mr-1 text-purple-400"></i> AI Model: LSTM Neural Net</span>
+              <button onclick="triggerAiRetrain()" class="bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 px-2 py-1 rounded font-bold transition">
+                <i class="fa-solid fa-rotate mr-1"></i> Retrain AI Model
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 1: ADMIN AUTH -->
+  <div id="adminAuthModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl w-full max-w-sm space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-sm font-bold text-white">Admin Security Unlock</h3>
+        <button onclick="closeAdminAuthModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <input type="password" id="adminPasswordInput" placeholder="Password (admin123)" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-xs text-white">
+      <button onclick="verifyAdminPassword()" class="w-full bg-blue-600 hover:bg-blue-500 py-2 rounded text-xs font-bold text-white">Unlock Admin Control</button>
+    </div>
+  </div>
+
+  <!-- MODAL 2: COORDINATOR SIGN IN / SIGN UP -->
+  <div id="coordAuthModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl w-full max-w-md space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <div class="flex gap-4 text-xs font-bold">
+          <button onclick="switchCoordAuthTab('signin')" id="btnCoordTabSignin" class="text-emerald-400 border-b-2 border-emerald-400 pb-1">Sign In</button>
+          <button onclick="switchCoordAuthTab('signup')" id="btnCoordTabSignup" class="text-slate-400 hover:text-white pb-1">Sign Up / Apply</button>
+        </div>
+        <button onclick="closeCoordAuthModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Sign In Form -->
+      <form id="coordSigninForm" onsubmit="handleCoordSignin(event)" class="space-y-3 text-xs">
+        <div><label class="text-slate-400 block mb-1">Phone Number</label><input type="tel" id="loginPhone" required placeholder="017XXXXXXXX" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white font-mono"></div>
+        <div><label class="text-slate-400 block mb-1">Password</label><input type="password" id="loginPass" required placeholder="Password" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white font-mono"></div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded font-bold text-white transition">Sign In to Dashboard</button>
+      </form>
+
+      <!-- Sign Up Form -->
+      <form id="coordSignupForm" onsubmit="handleCoordSignup(event)" class="hidden space-y-3 text-xs">
+        <div><label class="text-slate-400 block mb-1">Full Name</label><input type="text" id="applicantName" required placeholder="Full Name" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white"></div>
+        <div><label class="text-slate-400 block mb-1">Email Address</label><input type="email" id="applicantEmail" required placeholder="email@domain.com" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white"></div>
+        <div><label class="text-slate-400 block mb-1">Phone Number</label><input type="tel" id="applicantPhone" required placeholder="017XXXXXXXX" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white font-mono"></div>
+        <div><label class="text-slate-400 block mb-1">Set Password</label><input type="password" id="applicantPassword" required placeholder="Password" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white font-mono"></div>
+        <div><label class="text-slate-400 block mb-1">Reason for Applying</label><textarea id="applicantReason" required rows="2" placeholder="Why do you want to join?" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white"></textarea></div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded font-bold text-white transition">Submit Request to Admin</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPT ENGINE -->
+  <script>
+    let currentUser = null; // null (Guest), { role: 'Admin' }, or { role: 'Coordinator', name, phone, assignedNode }
+
+    let hardwareNodes = [
+      { 
+        id: 'ESP32-CAMPUS-01', 
+        name: 'AUST Campus Node', 
+        lat: 23.7639, 
+        lng: 90.4068, 
+        aqi: 74, pm25: 42, pm10: 65, co2: 410, no2: 28, temp: 28.5, hum: 65, 
+        peakTime: '08:00 AM - 10:00 AM (Traffic Peak)',
+        realtimeStream: [38, 40, 42, 41, 43, 42, 44],
+        hist24h: [50, 48, 52, 60, 85, 95, 110, 105, 90, 80, 74, 70],
+        histWeekOverall: [68, 72, 85, 90, 74, 62, 58],
+        histDayData: {
+          'Mon': [40, 45, 55, 70, 80, 90, 85, 75, 65, 60, 55, 50],
+          'Tue': [42, 48, 60, 75, 85, 95, 90, 80, 70, 65, 58, 52],
+          'Wed': [45, 50, 65, 80, 90, 100, 95, 85, 75, 70, 62, 55],
+          'Thu': [48, 52, 68, 82, 92, 102, 98, 88, 78, 72, 65, 58],
+          'Fri': [35, 40, 48, 55, 65, 70, 68, 60, 55, 50, 45, 40],
+          'Sat': [30, 35, 40, 50, 58, 62, 60, 55, 50, 45, 42, 38],
+          'Sun': [32, 36, 42, 52, 60, 65, 62, 56, 52, 48, 44, 40]
+        },
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        hotspots: [
+          { lat: 23.7645, lng: 90.4072, label: 'Drone Hotspot #1: Smoke Alert' },
+          { lat: 23.7632, lng: 90.4060, label: 'Drone Hotspot #2: Dust Zone' }
+        ]
+      },
+      { 
+        id: 'ESP32-LAKE-02', 
+        name: 'Dhanmondi Lake Node', 
+        lat: 23.7461, 
+        lng: 90.3742, 
+        aqi: 135, pm25: 88, pm10: 110, co2: 520, no2: 45, temp: 31.2, hum: 58, 
+        peakTime: '02:00 PM - 05:00 PM (Heat & Exhaust)',
+        realtimeStream: [120, 125, 130, 128, 132, 135, 138],
+        hist24h: [60, 58, 65, 75, 110, 140, 160, 150, 135, 120, 110, 95],
+        histWeekOverall: [110, 125, 140, 135, 128, 115, 105],
+        histDayData: {
+          'Mon': [80, 85, 100, 120, 135, 150, 145, 130, 120, 110, 100, 90],
+          'Tue': [85, 90, 105, 125, 140, 155, 150, 135, 125, 115, 105, 95],
+          'Wed': [90, 95, 110, 130, 145, 160, 155, 140, 130, 120, 110, 100],
+          'Thu': [95, 100, 115, 135, 150, 165, 160, 145, 135, 125, 115, 105],
+          'Fri': [70, 75, 85, 95, 110, 120, 115, 105, 95, 85, 80, 75],
+          'Sat': [65, 70, 80, 90, 105, 115, 110, 100, 90, 80, 75, 70],
+          'Sun': [68, 72, 82, 92, 108, 118, 112, 102, 92, 82, 78, 72]
+        },
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+        hotspots: [
+          { lat: 23.7468, lng: 90.3750, label: 'Drone Hotspot #1: High CO2' }
+        ]
+      }
+    ];
+
+    let applications = [
+      { id: 1, name: 'Tanvir Ahmed', email: 'tanvir@gmail.com', phone: '01711223344', pass: 'tanvir123', reason: 'Field duty at Uttara site.' }
+    ];
+    
+    let teamMembers = [
+      { id: 101, name: 'Ratul Krishna', email: 'ratul@aerobreath.com', phone: '01800000000', pass: 'admin123', role: 'Admin', assignedNode: 'ALL' },
+      { id: 102, name: 'Samiul Islam', email: 'samiul@aerobreath.com', phone: '01900000000', pass: 'coord456', role: 'Coordinator', assignedNode: 'ESP32-CAMPUS-01' }
+    ];
+
+    let systemMessages = [
+      { id: 1001, time: '10:15 AM', nodeId: 'ESP32-CAMPUS-01', location: 'AUST Campus Field', type: 'Repair', details: 'Sensor reading fluctuates under direct sunlight.', status: 'UNSOLVED' }
+    ];
+
+    let freeMap = null, freeMarker = null, hotspotLayers = [];
+    let summaryMapInstance = null, summaryMarkers = [];
+    let charts = {};
+    let activeSummaryNodeId = null, activeDetailNodeId = null;
+    let activeHistMode = '24h', activeSelectedDay = 'overall';
+
+    function showMainView(viewId) {
+      ['overviewView', 'nodeDetailView', 'adminDashboardView', 'coordinatorDashboardView'].forEach(v => document.getElementById(v).classList.add('hidden'));
+      document.getElementById(viewId).classList.remove('hidden');
+      if (viewId === 'overviewView') renderOverviewGrid();
+      if (viewId === 'adminDashboardView') renderAdminDashboard();
+      if (viewId === 'coordinatorDashboardView') renderCoordinatorDashboard();
+    }
+
+    function updateSessionUI() {
+      const badge = document.getElementById('sessionStatusBadge');
+      const logoutBtn = document.getElementById('globalLogoutBtn');
+      const downloadPanel = document.getElementById('authorizedDownloadPanel');
+
+      if (!currentUser) {
+        badge.innerText = "User Mode: Public Guest";
+        badge.className = "text-xs text-slate-400 font-semibold";
+        logoutBtn.classList.add('hidden');
+        if (downloadPanel) downloadPanel.classList.add('hidden');
+      } else if (currentUser.role === 'Admin') {
+        badge.innerText = "Logged In: System Admin";
+        badge.className = "text-xs text-blue-400 font-bold";
+        logoutBtn.classList.remove('hidden');
+        if (downloadPanel) downloadPanel.classList.remove('hidden');
+      } else {
+        badge.innerText = `Logged In: Coordinator (${currentUser.name})`;
+        badge.className = "text-xs text-emerald-400 font-bold";
+        logoutBtn.classList.remove('hidden');
+        if (downloadPanel) downloadPanel.classList.remove('hidden');
+      }
+    }
+
+    function performLogout() {
+      currentUser = null;
+      updateSessionUI();
+      showMainView('overviewView');
+      alert("Successfully Signed Out.");
+    }
+
+    function renderOverviewGrid() {
+      const grid = document.getElementById('nodesGrid');
+      grid.innerHTML = '';
+      hardwareNodes.forEach(node => {
+        const hasUnsolved = systemMessages.some(m => m.nodeId === node.id && m.status === 'UNSOLVED');
+        const alertBadge = hasUnsolved ? `<span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Under Maintenance</span>` : `<span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded">Online</span>`;
+
+        const card = document.createElement('div');
+        card.className = "bg-slate-900/80 p-5 rounded-xl border border-slate-800 space-y-3 cursor-pointer hover:border-emerald-500/50 transition";
+        card.onclick = () => openNodeDetail(node.id);
+        card.innerHTML = `
+          <div class="flex justify-between items-center"><span class="text-xs font-bold text-emerald-400 font-mono">${node.id}</span>${alertBadge}</div>
+          <h3 class="text-md font-bold text-white">${node.name}</h3>
+          <div class="text-[11px] text-slate-400"><i class="fa-solid fa-map-pin text-rose-400 mr-1"></i> Lat: ${node.lat}, Lng: ${node.lng}</div>
+          <button class="w-full text-center text-xs text-emerald-400 font-semibold py-1.5 bg-emerald-500/10 rounded">Open Dashboard & Satellite Map &rarr;</button>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function openNodeDetail(nodeId) {
+      activeDetailNodeId = nodeId;
+      const node = hardwareNodes.find(n => n.id === nodeId);
+      if (!node) return;
+      showMainView('nodeDetailView');
+      document.getElementById('activeNodeTitle').innerText = `${node.id} - ${node.name}`;
+      document.getElementById('coordDisplay').innerText = `[${node.lat}, ${node.lng}]`;
+      
+      // Check Unsolved Inspection Banner
+      const hasUnsolved = systemMessages.some(m => m.nodeId === nodeId && m.status === 'UNSOLVED');
+      const banner = document.getElementById('nodeSurveillanceBanner');
+      if (hasUnsolved) banner.classList.remove('hidden');
+      else banner.classList.add('hidden');
+
+      updateSessionUI();
+
+      const vid = document.getElementById('nodeVideo');
+      document.getElementById('nodeVideoSrc').src = node.videoUrl;
+      vid.load();
+
+      // Satellite View Map Setup
+      setTimeout(() => {
+        if (!freeMap) {
+          freeMap = L.map('nodeMap').setView([node.lat, node.lng], 16);
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }).addTo(freeMap);
+          L.tileLayer('https://{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], maxZoom: 20 }).addTo(freeMap);
+          freeMarker = L.marker([node.lat, node.lng]).addTo(freeMap).bindPopup(`<b>${node.name}</b><br>(ESP32 Node)`).openPopup();
+        } else {
+          freeMap.setView([node.lat, node.lng], 16);
+          freeMarker.setLatLng([node.lat, node.lng]).setPopupContent(`<b>${node.name}</b><br>(ESP32 Node)`).openPopup();
+        }
+
+        hotspotLayers.forEach(layer => freeMap.removeLayer(layer));
+        hotspotLayers = [];
+
+        if (node.hotspots && node.hotspots.length > 0) {
+          node.hotspots.forEach(hs => {
+            const circle = L.circle([hs.lat, hs.lng], { color: '#ef4444', fillColor: '#f87171', fillOpacity: 0.5, radius: 35 }).addTo(freeMap).bindPopup(`<b>${hs.label}</b>`);
+            hotspotLayers.push(circle);
+          });
+        }
+        freeMap.invalidateSize();
+      }, 200);
+
+      initCharts();
+      switchTab('tabLive');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.remove('hidden');
+      document.getElementById('btn-' + tabId).classList.add('active');
+    }
+
+    function initCharts() {
+      if (charts.liveTrend) charts.liveTrend.destroy();
+      charts.liveTrend = new Chart(document.getElementById('liveTrendChart'), {
+        type: 'line',
+        data: { labels: ['10s', '8s', '6s', '4s', '2s', '0s'], datasets: [{ label: 'PM2.5', data: [40, 42, 41, 43, 42, 44], borderColor: '#f59e0b' }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      if (charts.ai) charts.ai.destroy();
+      charts.ai = new Chart(document.getElementById('aiForecastChart'), {
+        type: 'line',
+        data: { labels: ['-6h', '-4h', '-2h', 'Now', '+2h', '+4h', '+6h'], datasets: [{ label: 'Historical AQI', data: [70, 72, 71, 74, null, null, null], borderColor: '#3b82f6' }, { label: 'Predicted AQI (LSTM)', data: [null, null, null, 74, 76, 80, 78], borderColor: '#f43f5e', borderDash: [5, 5] }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function refreshChart(chartId) {
+      if (charts[chartId]) {
+        charts[chartId].update();
+        alert(`Chart refreshed dynamically!`);
+      }
+    }
+
+    // ISSUE REPORTING (Repair Data / Emergency Alert)
+    function triggerNodeReport(type) {
+      if (!activeDetailNodeId) return;
+      const node = hardwareNodes.find(n => n.id === activeDetailNodeId);
+      const userMsg = prompt(`Enter details for ${type} issue on ${node.name}:`);
+      if (userMsg) {
+        const now = new Date();
+        const timeStr = `${now.getHours() % 12 || 12}:${now.getMinutes().toString().padStart(2, '0')} ${now.getHours() >= 12 ? 'PM' : 'AM'}`;
+        
+        systemMessages.push({
+          id: Date.now(),
+          time: timeStr,
+          nodeId: node.id,
+          location: node.name,
+          type: type,
+          details: userMsg,
+          status: 'UNSOLVED'
+        });
+
+        alert(`Report submitted! Admin and the assigned Coordinator have been notified. Node is marked for inspection.`);
+        openNodeDetail(node.id);
+      }
+    }
+
+    // EXCLUSIVE DOWNLOADS
+    function downloadDataSheet() {
+      if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'Coordinator')) {
+        alert("Access Denied! Sign in as Admin or Coordinator to download Data Sheet.");
+        return;
+      }
+      alert(`Downloading CSV Telemetry Data Sheet for ${activeDetailNodeId}...`);
+    }
+
+    function downloadAerialVideo() {
+      if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'Coordinator')) {
+        alert("Access Denied! Sign in as Admin or Coordinator to download Aerial Video.");
+        return;
+      }
+      alert(`Initiating high-resolution aerial drone video download for ${activeDetailNodeId}...`);
+    }
+
+    // AUTH & MODALS
+    function openAdminAuthModal() { document.getElementById('adminAuthModal').classList.remove('hidden'); }
+    function closeAdminAuthModal() { document.getElementById('adminAuthModal').classList.add('hidden'); }
+    function verifyAdminPassword() {
+      if (document.getElementById('adminPasswordInput').value === 'admin123') {
+        closeAdminAuthModal();
+        currentUser = { role: 'Admin', name: 'Ratul Krishna' };
+        updateSessionUI();
+        showMainView('adminDashboardView');
+      } else alert('Wrong Admin Password!');
+    }
+
+    function openCoordAuthModal() { document.getElementById('coordAuthModal').classList.remove('hidden'); }
+    function closeCoordAuthModal() { document.getElementById('coordAuthModal').classList.add('hidden'); }
+    function switchCoordAuthTab(tab) {
+      if (tab === 'signin') {
+        document.getElementById('coordSigninForm').classList.remove('hidden');
+        document.getElementById('coordSignupForm').classList.add('hidden');
+        document.getElementById('btnCoordTabSignin').className = "text-emerald-400 border-b-2 border-emerald-400 pb-1";
+        document.getElementById('btnCoordTabSignup').className = "text-slate-400 hover:text-white pb-1";
+      } else {
+        document.getElementById('coordSigninForm').classList.add('hidden');
+        document.getElementById('coordSignupForm').classList.remove('hidden');
+        document.getElementById('btnCoordTabSignin').className = "text-slate-400 hover:text-white pb-1";
+        document.getElementById('btnCoordTabSignup').className = "text-emerald-400 border-b-2 border-emerald-400 pb-1";
+      }
+    }
+
+    function handleCoordSignin(e) {
+      e.preventDefault();
+      const phone = document.getElementById('loginPhone').value;
+      const pass = document.getElementById('loginPass').value;
+
+      const member = teamMembers.find(m => m.phone === phone && m.pass === pass);
+      if (member) {
+        currentUser = member;
+        closeCoordAuthModal();
+        updateSessionUI();
+        if (member.role === 'Admin') showMainView('adminDashboardView');
+        else showMainView('coordinatorDashboardView');
+      } else alert("Invalid Phone Number or Password!");
+    }
+
+    function handleCoordSignup(e) {
+      e.preventDefault();
+      applications.push({
+        id: Date.now(),
+        name: document.getElementById('applicantName').value,
+        email: document.getElementById('applicantEmail').value,
+        phone: document.getElementById('applicantPhone').value,
+        pass: document.getElementById('applicantPassword').value,
+        reason: document.getElementById('applicantReason').value
+      });
+      closeCoordAuthModal();
+      alert('Application submitted! Admin will review your credentials for approval.');
+    }
+
+    // DASHBOARDS & TABLES
+    function renderAdminDashboard() {
+      // 1. Message Box
+      const msgBody = document.getElementById('messageBoxTable');
+      msgBody.innerHTML = '';
+      document.getElementById('msgBoxCounter').innerText = `${systemMessages.length} Total Reports`;
+
+      systemMessages.forEach(m => {
+        const isSolved = m.status === 'SOLVED';
+        const badge = isSolved ? `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold">SOLVED</span>` : `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded font-bold">UNSOLVED</span>`;
+
+        msgBody.innerHTML += `
+          <tr class="${isSolved ? 'bg-emerald-950/10' : 'bg-rose-950/10'}">
+            <td class="p-2 font-mono text-slate-400">${m.time}</td>
+            <td class="p-2 font-bold text-white">${m.nodeId}<br><span class="text-[10px] text-slate-400 font-normal">${m.location}</span></td>
+            <td class="p-2 font-bold ${m.type === 'Emergency' ? 'text-rose-400' : 'text-amber-400'}">${m.type}</td>
+            <td class="p-2 text-slate-300">${m.details}</td>
+            <td class="p-2">${badge}</td>
+            <td class="p-2 text-right">
+              ${!isSolved ? `<button onclick="markSolveMessage(${m.id})" class="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 px-2.5 py-1 rounded font-bold transition"><i class="fa-solid fa-check mr-1"></i> Solve</button>` : `<span class="text-emerald-400 text-[10px] font-bold"><i class="fa-solid fa-circle-check"></i> Solved</span>`}
+            </td>
+          </tr>
+        `;
+      });
+
+      // 2. Pending Applications
+      const appBody = document.getElementById('applicationsTable');
+      appBody.innerHTML = '';
+      if(applications.length === 0) appBody.innerHTML = `<tr><td colspan="5" class="p-3 text-slate-500 text-center">No pending applications</td></tr>`;
+      else {
+        applications.forEach(a => {
+          appBody.innerHTML += `
+            <tr>
+              <td class="p-2 text-white font-bold">${a.name}</td>
+              <td class="p-2 text-slate-400 text-[11px]">${a.email}<br><span class="text-slate-500 font-mono">${a.phone}</span></td>
+              <td class="p-2 font-mono text-amber-300 font-bold">${a.pass}</td>
+              <td class="p-2 text-slate-300">${a.reason}</td>
+              <td class="p-2 text-right">
+                <button onclick="approveApp(${a.id})" class="bg-emerald-600/20 text-emerald-400 px-2.5 py-1 rounded font-bold hover:bg-emerald-600/30 transition">Approve</button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      // 3. Active Members & Dynamic Node Assignment
+      const memBody = document.getElementById('membersTable');
+      memBody.innerHTML = '';
+      teamMembers.forEach(m => {
+        let nodeSelectOptions = `<option value="UNASSIGNED" ${!m.assignedNode || m.assignedNode === 'UNASSIGNED' ? 'selected' : ''}>None (Unassigned)</option>`;
+        hardwareNodes.forEach(n => {
+          nodeSelectOptions += `<option value="${n.id}" ${m.assignedNode === n.id ? 'selected' : ''}>${n.id} (${n.name})</option>`;
+        });
+
+        memBody.innerHTML += `
+          <tr>
+            <td class="p-2 text-white font-bold">${m.name}<br><span class="text-[10px] text-slate-400 font-normal font-mono">${m.email} | ${m.phone}</span></td>
+            <td class="p-2 font-mono text-amber-300">
+              <span id="passText-${m.id}" class="hidden">${m.pass}</span>
+              <span id="passMask-${m.id}">••••••••</span>
+              <button onclick="togglePassVisibility(${m.id})" class="ml-1 text-slate-400 hover:text-white"><i class="fa-solid fa-eye text-xs"></i></button>
+            </td>
+            <td class="p-2">
+              <select onchange="updateMemberRole(${m.id}, this.value)" class="bg-slate-950 text-xs border border-slate-700 rounded px-2 py-1 ${m.role === 'Admin' ? 'text-blue-400 font-bold' : 'text-emerald-400'}">
+                <option value="Coordinator" ${m.role === 'Coordinator' ? 'selected' : ''}>Coordinator</option>
+                <option value="Admin" ${m.role === 'Admin' ? 'selected' : ''}>Admin</option>
+              </select>
+            </td>
+            <td class="p-2">
+              <select onchange="updateMemberNodeAssignment(${m.id}, this.value)" class="bg-slate-950 text-xs border border-purple-800 text-purple-300 rounded px-2 py-1 font-semibold">
+                ${nodeSelectOptions}
+              </select>
+            </td>
+            <td class="p-2 text-right">
+              <button onclick="removeMember(${m.id})" class="bg-rose-600/20 text-rose-400 hover:bg-rose-600/30 px-2.5 py-1 rounded font-bold transition"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      });
+
+      // 4. Fleet Control
+      const fleetBody = document.getElementById('adminFleetTable');
+      fleetBody.innerHTML = '';
+      hardwareNodes.forEach(node => {
+        fleetBody.innerHTML += `
+          <tr>
+            <td class="p-2 font-mono text-emerald-400">${node.id}</td>
+            <td class="p-2 font-bold text-white">${node.name}</td>
+            <td class="p-2 font-mono text-slate-400">${node.lat}, ${node.lng}</td>
+            <td class="p-2 text-right space-x-1">
+              <button onclick="populateEditForm('${node.id}')" class="bg-amber-600/20 text-amber-400 px-2.5 py-1 rounded font-bold hover:bg-amber-600/30 transition">Edit</button>
+              <button onclick="deleteNode('${node.id}')" class="bg-rose-600/20 text-rose-400 px-2 py-1 rounded font-bold hover:bg-rose-600/30 transition">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderCoordinatorDashboard() {
+      if (!currentUser || currentUser.role !== 'Coordinator') return;
+
+      document.getElementById('coordDeskWelcome').innerText = `Coordinator: ${currentUser.name} | Phone: ${currentUser.phone} | Assigned Node: ${currentUser.assignedNode || 'None'}`;
+      
+      const coordMsgs = systemMessages.filter(m => m.nodeId === currentUser.assignedNode || currentUser.assignedNode === 'ALL');
+      const table = document.getElementById('coordMessageBoxTable');
+      table.innerHTML = '';
+      document.getElementById('coordMsgCounter').innerText = `${coordMsgs.length} Assigned Reports`;
+
+      if (coordMsgs.length === 0) {
+        table.innerHTML = `<tr><td colspan="6" class="p-3 text-slate-500 text-center">No reports or repair requests for your assigned node.</td></tr>`;
+      } else {
+        coordMsgs.forEach(m => {
+          const isSolved = m.status === 'SOLVED';
+          const badge = isSolved ? `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold">SOLVED</span>` : `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded font-bold">UNSOLVED</span>`;
+
+          table.innerHTML += `
+            <tr class="${isSolved ? 'bg-emerald-950/10' : 'bg-rose-950/10'}">
+              <td class="p-2 font-mono text-slate-400">${m.time}</td>
+              <td class="p-2 font-bold text-white">${m.nodeId}<br><span class="text-[10px] text-slate-400 font-normal">${m.location}</span></td>
+              <td class="p-2 font-bold ${m.type === 'Emergency' ? 'text-rose-400' : 'text-amber-400'}">${m.type}</td>
+              <td class="p-2 text-slate-300">${m.details}</td>
+              <td class="p-2">${badge}</td>
+              <td class="p-2 text-right">
+                ${!isSolved ? `<button onclick="markSolveMessage(${m.id})" class="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 px-2.5 py-1 rounded font-bold transition"><i class="fa-solid fa-check mr-1"></i> Solve Issue</button>` : `<span class="text-emerald-400 text-[10px] font-bold"><i class="fa-solid fa-circle-check"></i> Solved</span>`}
+              </td>
+            </tr>
+          `;
+        });
+      }
+    }
+
+    function markSolveMessage(id) {
+      const msg = systemMessages.find(m => m.id === id);
+      if (msg) {
+        msg.status = 'SOLVED';
+        alert(`Issue marked as SOLVED! Status updated to Green.`);
+        if (currentUser && currentUser.role === 'Admin') renderAdminDashboard();
+        if (currentUser && currentUser.role === 'Coordinator') renderCoordinatorDashboard();
+      }
+    }
+
+    function updateMemberNodeAssignment(memId, nodeId) {
+      const m = teamMembers.find(x => x.id === memId);
+      if (m) {
+        m.assignedNode = nodeId;
+        alert(`Assigned ${m.name} to Node ${nodeId}`);
+        renderAdminDashboard();
+      }
+    }
+
+    function togglePassVisibility(id) {
+      const txt = document.getElementById(`passText-${id}`);
+      const mask = document.getElementById(`passMask-${id}`);
+      if (txt.classList.contains('hidden')) {
+        txt.classList.remove('hidden');
+        mask.classList.add('hidden');
+      } else {
+        txt.classList.add('hidden');
+        mask.classList.remove('hidden');
+      }
+    }
+
+    function approveApp(id) {
+      const a = applications.find(x => x.id === id);
+      if (a) {
+        teamMembers.push({ id: Date.now(), name: a.name, email: a.email, phone: a.phone, pass: a.pass, role: 'Coordinator', assignedNode: 'UNASSIGNED' });
+        applications = applications.filter(x => x.id !== id);
+        renderAdminDashboard();
+        alert(`${a.name} approved as Coordinator!`);
+      }
+    }
+
+    function updateMemberRole(id, newRole) {
+      const m = teamMembers.find(x => x.id === id);
+      if (m) {
+        m.role = newRole;
+        renderAdminDashboard();
+      }
+    }
+
+    function handleManualMemberAdd(e) {
+      e.preventDefault();
+      const name = document.getElementById('manualMemName').value;
+      const email = document.getElementById('manualMemEmail').value;
+      const phone = document.getElementById('manualMemPhone').value;
+      const pass = document.getElementById('manualMemPass').value;
+      const role = document.getElementById('manualMemRole').value;
+      
+      teamMembers.push({ id: Date.now(), name, email, phone, pass, role, assignedNode: 'UNASSIGNED' });
+      
+      document.getElementById('manualMemName').value = '';
+      document.getElementById('manualMemEmail').value = '';
+      document.getElementById('manualMemPhone').value = '';
+      document.getElementById('manualMemPass').value = '';
+      
+      renderAdminDashboard();
+      alert(`Assigned ${name} as ${role}!`);
+    }
+
+    function removeMember(id) {
+      if(confirm("Are you sure you want to delete this member?")) {
+        teamMembers = teamMembers.filter(x => x.id !== id);
+        renderAdminDashboard();
+      }
+    }
+
+    function populateEditForm(nodeId) {
+      const node = hardwareNodes.find(n => n.id === nodeId);
+      if (!node) return;
+      document.getElementById('editOriginalId').value = node.id;
+      document.getElementById('addHwId').value = node.id;
+      document.getElementById('addHwName').value = node.name;
+      document.getElementById('addHwLat').value = node.lat;
+      document.getElementById('addHwLng').value = node.lng;
+      document.getElementById('addHwVideo').value = node.videoUrl;
+
+      document.getElementById('formHeaderTitle').innerText = 'Edit Hardware Node';
+      document.getElementById('submitHwBtn').innerText = 'Update Node Data';
+      document.getElementById('cancelEditBtn').classList.remove('hidden');
+    }
+
+    function resetForm() {
+      document.getElementById('editOriginalId').value = '';
+      document.getElementById('addHwId').value = '';
+      document.getElementById('addHwName').value = '';
+      document.getElementById('addHwLat').value = '';
+      document.getElementById('addHwLng').value = '';
+      document.getElementById('addHwVideo').value = '';
+
+      document.getElementById('formHeaderTitle').innerText = 'Register New ESP32 Node';
+      document.getElementById('submitHwBtn').innerText = 'Save Node Configuration';
+      document.getElementById('cancelEditBtn').classList.add('hidden');
+    }
+
+    function handleHardwareSubmit(e) {
+      e.preventDefault();
+      const origId = document.getElementById('editOriginalId').value;
+      const id = document.getElementById('addHwId').value;
+      const name = document.getElementById('addHwName').value;
+      const lat = parseFloat(document.getElementById('addHwLat').value);
+      const lng = parseFloat(document.getElementById('addHwLng').value);
+      const videoUrl = document.getElementById('addHwVideo').value;
+
+      if (origId) {
+        const index = hardwareNodes.findIndex(n => n.id === origId);
+        if (index !== -1) {
+          hardwareNodes[index] = { ...hardwareNodes[index], id, name, lat, lng, videoUrl };
+          alert('Node Updated Successfully!');
+        }
+      } else {
+        hardwareNodes.push({ 
+          id, name, lat, lng, videoUrl, aqi: 60, pm25: 35, pm10: 50, co2: 400, no2: 20, temp: 27, hum: 60, 
+          realtimeStream: [30, 32, 35, 34, 36, 35, 37], 
+          hist24h: [40, 42, 45, 50, 65, 70, 75, 70, 60, 55, 50, 45],
+          histWeekOverall: [55, 58, 62, 60, 57, 52, 50],
+          histDayData: {
+            'Mon': [35, 40, 45, 50, 58, 62, 60, 55, 50, 45, 42, 38],
+            'Tue': [36, 41, 46, 52, 60, 64, 62, 56, 52, 46, 43, 39],
+            'Wed': [38, 43, 48, 55, 62, 66, 64, 58, 54, 48, 45, 40],
+            'Thu': [40, 45, 50, 58, 65, 70, 68, 60, 56, 50, 46, 42],
+            'Fri': [30, 35, 40, 45, 50, 55, 52, 48, 45, 40, 38, 35],
+            'Sat': [28, 32, 38, 42, 48, 52, 50, 45, 42, 38, 35, 32],
+            'Sun': [29, 34, 39, 44, 50, 54, 52, 46, 43, 39, 36, 33]
+          },
+          peakTime: '10:00 AM', hotspots: [] 
+        });
+        alert('New Hardware Node Registered!');
+      }
+
+      resetForm();
+      renderAdminDashboard();
+    }
+
+    function deleteNode(nodeId) {
+      if (confirm(`Delete ${nodeId}?`)) {
+        hardwareNodes = hardwareNodes.filter(n => n.id !== nodeId);
+        renderAdminDashboard();
+      }
+    }
+
+    // ALL SUMMARY MODAL FUNCTIONS
+    function openFleetSummaryModal() {
+      document.getElementById('fleetSummaryModal').classList.remove('hidden');
+      renderSummaryAreaList();
+
+      setTimeout(() => {
+        if (!summaryMapInstance) {
+          summaryMapInstance = L.map('summaryMap').setView([23.75, 90.39], 12);
+          L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }).addTo(summaryMapInstance);
+          L.tileLayer('https://{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], maxZoom: 20 }).addTo(summaryMapInstance);
+        }
+
+        summaryMarkers.forEach(m => summaryMapInstance.removeLayer(m));
+        summaryMarkers = [];
+
+        hardwareNodes.forEach(node => {
+          const m = L.marker([node.lat, node.lng]).addTo(summaryMapInstance)
+            .bindPopup(`<b>${node.name}</b><br>AQI Index: ${node.aqi}`)
+            .on('click', () => showAreaDetail(node.id));
+          summaryMarkers.push(m);
+        });
+
+        summaryMapInstance.invalidateSize();
+      }, 200);
+    }
+
+    function closeFleetSummaryModal() {
+      document.getElementById('fleetSummaryModal').classList.add('hidden');
+      closeAreaDetail();
+    }
+
+    function renderSummaryAreaList() {
+      const container = document.getElementById('summaryAreaList');
+      container.innerHTML = '';
+      hardwareNodes.forEach((node, idx) => {
+        const badgeColor = node.aqi > 100 ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+        const card = document.createElement('div');
+        card.className = "bg-slate-950 p-3 rounded-lg border border-slate-800 hover:border-purple-500/50 cursor-pointer transition flex items-center justify-between";
+        card.onclick = () => showAreaDetail(node.id);
+        card.innerHTML = `
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] bg-slate-800 text-purple-300 font-mono px-1.5 py-0.5 rounded">#${idx + 1} Index</span>
+              <h4 class="text-xs font-bold text-white">${node.name}</h4>
+            </div>
+            <p class="text-[10px] text-slate-400">Peak Time: <span class="text-amber-300 font-mono">${node.peakTime}</span></p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-extrabold px-2 py-1 rounded border ${badgeColor}">AQI ${node.aqi}</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function showAreaDetail(nodeId) {
+      activeSummaryNodeId = nodeId;
+      const node = hardwareNodes.find(n => n.id === nodeId);
+      if (!node) return;
+
+      document.getElementById('areaDetailDashboard').classList.remove('hidden');
+      document.getElementById('detailNodeId').innerText = node.id;
+      document.getElementById('detailAreaName').innerText = `${node.name} - Detailed Analytics`;
+      document.getElementById('detailPm25').innerText = node.pm25;
+      document.getElementById('detailPm10').innerText = node.pm10;
+      document.getElementById('detailCo2').innerText = node.co2;
+      document.getElementById('detailNo2').innerText = node.no2;
+      document.getElementById('detailTemp').innerText = `${node.temp}°C`;
+      document.getElementById('detailHum').innerText = `${node.hum}%`;
+
+      if (summaryMapInstance) summaryMapInstance.setView([node.lat, node.lng], 15);
+
+      renderHistoricalChart(node, activeHistMode, activeSelectedDay);
+      renderRealtimeChart(node);
+      renderAiForecastChart(node, parseInt(document.getElementById('aiHourSlider').value));
+    }
+
+    function toggleHistoryView(mode) {
+      activeHistMode = mode;
+      document.getElementById('btnHist24h').className = mode === '24h' ? "px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300" : "px-2 py-0.5 rounded font-bold text-slate-400 hover:text-white";
+      document.getElementById('btnHistWeek').className = mode === 'week' ? "px-2 py-0.5 rounded font-bold bg-amber-500/20 text-amber-300" : "px-2 py-0.5 rounded font-bold text-slate-400 hover:text-white";
+      
+      const dayDropdown = document.getElementById('weeklyDayFilter');
+      if (mode === 'week') dayDropdown.classList.remove('hidden');
+      else dayDropdown.classList.add('hidden');
+
+      if (activeSummaryNodeId) {
+        const node = hardwareNodes.find(n => n.id === activeSummaryNodeId);
+        if (node) renderHistoricalChart(node, mode, activeSelectedDay);
+      }
+    }
+
+    function onWeeklyDayFilterChange(dayVal) {
+      activeSelectedDay = dayVal;
+      if (activeSummaryNodeId) {
+        const node = hardwareNodes.find(n => n.id === activeSummaryNodeId);
+        if (node) renderHistoricalChart(node, 'week', dayVal);
+      }
+    }
+
+    function renderHistoricalChart(node, mode, selectedDay) {
+      let labels = [], data = [], chartTitle = '';
+
+      if (mode === '24h') {
+        labels = ['02:00 AM', '04:00 AM', '06:00 AM', '08:00 AM', '10:00 AM', '12:00 PM', '02:00 PM', '04:00 PM', '06:00 PM', '08:00 PM', '10:00 PM', '12:00 AM'];
+        data = node.hist24h;
+        chartTitle = '24 Hours Diurnal Pattern';
+      } else {
+        if (selectedDay === 'overall' || !selectedDay) {
+          labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+          data = node.histWeekOverall;
+          chartTitle = 'Weekly Overall Average AQI';
+        } else {
+          labels = ['02:00 AM', '04:00 AM', '06:00 AM', '08:00 AM', '10:00 AM', '12:00 PM', '02:00 PM', '04:00 PM', '06:00 PM', '08:00 PM', '10:00 PM', '12:00 AM'];
+          data = node.histDayData[selectedDay] || node.hist24h;
+          chartTitle = `Specific Hourly Pattern for ${selectedDay}`;
+        }
+      }
+
+      if (charts.summaryHistorical) charts.summaryHistorical.destroy();
+      charts.summaryHistorical = new Chart(document.getElementById('summaryHistoricalChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{ label: chartTitle, data: data, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.3 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function renderRealtimeChart(node) {
+      const now = new Date();
+      const labels = [];
+      for (let i = 6; i >= 0; i--) {
+        const t = new Date(now.getTime() - i * 60000);
+        let hours = t.getHours();
+        const minutes = t.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        labels.push(`${hours}:${minutes} ${ampm}`);
+      }
+
+      if (charts.summaryRealtime) charts.summaryRealtime.destroy();
+      charts.summaryRealtime = new Chart(document.getElementById('summaryRealtimeChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Live AQI Streaming', data: node.realtimeStream, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.3 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function renderAiForecastChart(node, hoursHorizon) {
+      const now = new Date();
+      const labels = [];
+      const forecastData = [];
+      let currentAqi = node.aqi;
+
+      for (let h = 1; h <= hoursHorizon; h++) {
+        const t = new Date(now.getTime() + h * 3600000);
+        let hours = t.getHours();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        labels.push(`${hours}:00 ${ampm}`);
+
+        currentAqi += Math.floor(Math.sin(h / 2) * 6) + (Math.random() > 0.5 ? 2 : -2);
+        forecastData.push(currentAqi);
+      }
+
+      if (charts.summaryAiPrediction) charts.summaryAiPrediction.destroy();
+      charts.summaryAiPrediction = new Chart(document.getElementById('summaryAiPredictionChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{ label: `LSTM Forecast (Next ${hoursHorizon} Hours)`, data: forecastData, borderColor: '#a855f7', borderDash: [4, 4], backgroundColor: 'rgba(168, 85, 247, 0.1)', fill: true, tension: 0.3 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function updateAiForecastHorizon(hours) {
+      document.getElementById('aiHourDisplay').innerText = `Next ${hours} Hours`;
+      if (activeSummaryNodeId) {
+        const node = hardwareNodes.find(n => n.id === activeSummaryNodeId);
+        if (node) renderAiForecastChart(node, parseInt(hours));
+      }
+    }
+
+    function triggerAiRetrain() {
+      alert("Retraining BAYUROKKHI LSTM AI Model using live streaming and historical dataset...");
+      setTimeout(() => {
+        alert("AI Model Training Completed! Weights successfully updated.");
+        if (activeSummaryNodeId) {
+          const node = hardwareNodes.find(n => n.id === activeSummaryNodeId);
+          if (node) renderAiForecastChart(node, parseInt(document.getElementById('aiHourSlider').value));
+        }
+      }, 600);
+    }
+
+    function closeAreaDetail() {
+      activeSummaryNodeId = null;
+      document.getElementById('areaDetailDashboard').classList.add('hidden');
+    }
+
+    showMainView('overviewView');
+  </script>
+</body>
+</html>
