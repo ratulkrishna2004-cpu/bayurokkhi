@@ -147,7 +147,14 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px}
 .sig{display:flex;align-items:center;gap:10px}
 .lamp{width:14px;height:14px;border-radius:50%;background:#3a4a46}
 .lamp.red{background:#E24B4A;box-shadow:0 0 8px #E24B4A}.lamp.on{background:#F2C94C;box-shadow:0 0 10px #F2C94C}
-.route{border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.route{border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:#fff}
+.srch{position:relative}.sugg{position:absolute;left:0;right:0;top:100%;z-index:900;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(14,42,37,.15);overflow:hidden}.sugg:empty{display:none}
+.sugg button{display:block;width:100%;text-align:left;padding:8px 11px;border:0;border-top:1px solid #EEF2F0;background:#fff;cursor:pointer}.sugg button:hover{background:#EEF6F3}.sugg button span{display:block;font-size:12px;color:var(--muted)}
+.step{display:flex;gap:12px;align-items:center;padding:9px 6px;border-top:1px solid #E6EDE9}.step.now{background:#E9F4F0;border-radius:8px}
+.ico{width:32px;height:32px;border-radius:50%;background:var(--teal);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:17px;flex:none}.ico.big{width:48px;height:48px;font-size:26px}
+.lg{display:inline-block;width:18px;height:6px;border-radius:3px;margin:0 4px 0 10px}.lg.ring{height:12px;width:12px;border:2px dashed #D64541;border-radius:50%;background:transparent}
+.maplg{background:rgba(255,255,255,.94);border-radius:8px;padding:6px 9px;font:12px Barlow,sans-serif;color:#14302A;display:flex;flex-direction:column;gap:3px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.maplg span{display:flex;align-items:center;gap:6px}.maplg i{display:inline-block;width:12px;height:12px;box-sizing:border-box}
 .route.sel{border-color:var(--teal);background:#E9F4F0}
 .list-item{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid #E6EDE9;font-size:14px}
 .list-item:first-child{border-top:0}
@@ -193,7 +200,7 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px}
 /* ============================================================
    DATA LAYER (demo: browser storage). Replace with API calls.
    ============================================================ */
-const KEY='bayurokkhi_v2';
+const KEY='bayurokkhi_v3';
 function loadState(){try{const v=localStorage.getItem(KEY);return v?JSON.parse(v):null}catch(e){return null}}
 function saveState(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function loadSession(){try{return localStorage.getItem(KEY+'_me')}catch(e){return null}}
@@ -203,13 +210,13 @@ const nowStr=()=>new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',
 
 function seed(){
   const nodes=[
-    ['ESP32-CAMPUS-01','AUST Campus','Zone 2',23.7639,90.4068,42,65],
+    ['ESP32-CAMPUS-01','AUST Campus','Zone 2',23.7639,90.4068,30,52],
     ['ESP32-LAKE-02','Dhanmondi Lake','Zone 3',23.7461,90.3742,88,110],
     ['ESP32-JATRA-03','Jatrabari Crossing','Zone 4',23.7104,90.4349,96,168],
     ['ESP32-MIRPUR-04','Mirpur 10 Circle','Zone 1',23.8069,90.3687,70,120],
     ['ESP32-MOTI-05','Motijheel Shapla','Zone 4',23.7330,90.4172,82,140],
-    ['ESP32-UTTARA-06','Uttara House Building','Zone 5',23.8759,90.3795,55,95]
-  ].map(([id,name,zone,lat,lng,pm25,pm10],i)=>({id,name,zone,lat,lng,cam:true,videoUrl:'',
+    ['ESP32-UTTARA-06','Uttara House Building','Zone 5',23.8759,90.3795,36,60]
+  ].map(([id,name,zone,lat,lng,pm25,pm10],i)=>({id,name,zone,lat,lng,cam:true,videoUrl:'',bp:[30,70,105,62,92,36][i],
     r:{pm25,pm10,no2:30+i*6,co:1.6+i*.4,o3:32+i*3,co2:420+i*18,temp:29+i*.4,hum:62+i,wind:1.8+i*.3},
     hist:[],hotspots:i===2?[{lat:23.7112,lng:90.4361,label:'Road dust near bus stand',type:'Road dust'}]:[],
     dustDays:[2,3,6,4,5,1][i],peak:['08:00–10:00','17:00–19:00','07:30–10:30','18:00–20:00','09:00–11:00','08:00–09:30'][i],
@@ -225,7 +232,13 @@ function seed(){
     tickets:[{id:'T-1001',time:nowStr(),nodeId:'ESP32-CAMPUS-01',type:'Repair',details:'Sensor reading fluctuates under direct sunlight.',status:'open'}],
     reports:[{id:'R-2001',time:nowStr(),userId:'U-USR1',type:'Construction dust',lat:23.8071,lng:90.3701,note:'Open sand piles beside the metro work.',file:'mirpur_dust.mp4',status:'pending'}],
     requests:[{id:'Q-3001',time:nowStr(),userId:'U-USR1',lat:23.7452,lng:90.3761,area:'Dhanmondi 27',reason:'Smell of burning every evening',status:'open',coordId:''}],
-    surveys:[{id:'D-4001',time:nowStr(),coordId:'U-COORD1',zone:'Zone 3',notes:'Two hotspots near Dhanmondi 27; high PM10',video:'survey_zone3.mp4',hotspots:2,highDust:true}],
+    surveys:[
+      {id:'D-4001',ts:Date.now()-2*3600e3,time:nowStr(),coordId:'U-COORD1',zone:'Zone 3',notes:'High PM10 around Dhanmondi 27 and Satmasjid Road',video:'survey_zone3.mp4',highDust:true,
+       points:[{lat:23.7447,lng:90.3769,label:'High PM10 near Dhanmondi 27'},{lat:23.7501,lng:90.3688,label:'Construction dust, Satmasjid Road'}],hotspots:2},
+      {id:'D-4002',ts:Date.now()-5*3600e3,time:nowStr(),coordId:'U-COORD1',zone:'Zone 4',notes:'Dust and idling queue on the Jatrabari–Sayedabad stretch',video:'survey_zone4.mp4',highDust:true,
+       points:[{lat:23.7148,lng:90.4295,label:'Dust near the flyover ramp'},{lat:23.7196,lng:90.4263,label:'Idling queue, Sayedabad'},{lat:23.7262,lng:90.4221,label:'Open sand piles, Tikatuli'}],hotspots:3},
+      {id:'D-4003',ts:Date.now()-8*3600e3,time:nowStr(),coordId:'U-COORD1',zone:'Zone 1',notes:'Metro works dust at Mirpur 10',video:'survey_zone1.mp4',highDust:false,
+       points:[{lat:23.8047,lng:90.3662,label:'Metro works dust, Mirpur 10'}],hotspots:1}],
     cam:[{id:'C-5001',time:nowStr(),nodeId:'ESP32-JATRA-03',plate:'ঢাকা মেট্রো-ব ১১-২৩৪৫',score:.91,status:'pending'},{id:'C-5002',time:nowStr(),nodeId:'ESP32-MOTI-05',plate:'ঢাকা মেট্রো-জ ১৪-৬৭৮৯',score:.84,status:'pending'}],
     msgs:[],tlog:[],alerts:[],
     settings:{alertAqi:150,sensitiveAqi:100,cooldownMin:120,redNormal:35,redShort:25,ciLimit:.8}};
@@ -267,7 +280,7 @@ function stepNode(n){
   const h=new Date().getHours()+new Date().getMinutes()/60, f=diurnal(h);
   const rw=(v,base,sd,lo)=>Math.max(lo,v+(base*f-v)*.08+(Math.random()-.5)*sd);
   const b=hashN(n.id)%40;
-  n.r.pm25=rw(n.r.pm25,55+b,4,5);n.r.pm10=rw(n.r.pm10,100+b*1.6,6,10);n.r.no2=rw(n.r.no2,35+b/2,2,2);
+  const bp=n.bp||(55+b);n.r.pm25=rw(n.r.pm25,bp,4,5);n.r.pm10=rw(n.r.pm10,bp*1.75,6,10);n.r.no2=rw(n.r.no2,35+b/2,2,2);
   n.r.co=Math.max(.2,rw(n.r.co,2+b/40,.15,.2));n.r.o3=rw(n.r.o3,40,2,2);n.r.co2=rw(n.r.co2,440+b*3,6,380);
   n.r.temp=rw(n.r.temp,30,.2,15);n.r.hum=Math.min(99,rw(n.r.hum,65,.8,20));n.r.wind=Math.max(.2,rw(n.r.wind,2.5,.3,.2));
   const a=aqiOf(n.r);n.hist.push({t:Date.now(),aqi:a.aqi,pm25:+n.r.pm25.toFixed(1),pm10:+n.r.pm10.toFixed(1),no2:+n.r.no2.toFixed(1)});
@@ -308,8 +321,14 @@ function mkMap(el,center,zoom){const m=L.map(el,{scrollWheelZoom:false,zoomAnima
   const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'});
   const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'});
   osm.addTo(m);L.control.layers({'Street':osm,'Satellite':sat}).addTo(m);maps.push(m);setTimeout(()=>{if(maps.includes(m))m.invalidateSize()},60);return m}
-function nodeMarkers(m,onClick){S.nodes.forEach(n=>{const a=nodeAqi(n),c=cat(a);L.circleMarker([n.lat,n.lng],{radius:11,color:'#fff',weight:2,fillColor:c[3],fillOpacity:.95}).addTo(m).bindTooltip(`${esc(n.name)}: AQI ${a}`).on('click',()=>onClick&&onClick(n))});
-  S.nodes.forEach(n=>n.hotspots.forEach(h=>L.circle([h.lat,h.lng],{radius:120,color:'#D64541',weight:2,fillOpacity:.15}).addTo(m).bindPopup(`<b>${esc(h.label)}</b><br>${esc(h.type||'')}`)))}
+function nodeMarkers(m,onClick,opt={}){
+  // drone hotspots from today's surveys: red filled circles
+  dronePoints().forEach(p=>{L.circle([p.lat,p.lng],{radius:260,color:'#D64541',weight:2,fillColor:'#D64541',fillOpacity:.28}).addTo(m).bindPopup(`<b>Drone hotspot</b><br>${esc(p.label)}<br><span style="color:#566B63">${esc(p.zone)} · survey ${p.survey} · ${p.time}</span>`);
+    L.circleMarker([p.lat,p.lng],{radius:5,color:'#fff',weight:1.5,fillColor:'#B3261E',fillOpacity:1}).addTo(m)});
+  // verified citizen-report hotspots: orange rings
+  S.nodes.forEach(n=>n.hotspots.forEach(h=>L.circle([h.lat,h.lng],{radius:180,color:'#E08A1E',weight:3,fillColor:'#E08A1E',fillOpacity:.12}).addTo(m).bindPopup(`<b>Verified hotspot</b><br>${esc(h.label)}`)));
+  S.nodes.forEach(n=>{const a=nodeAqi(n),c=cat(a);L.circleMarker([n.lat,n.lng],{radius:11,color:'#fff',weight:2,fillColor:c[3],fillOpacity:.95}).addTo(m).bindTooltip(`${esc(n.name)}: AQI ${a}`).on('click',()=>onClick&&onClick(n))});
+  if(!opt.noLegend){const lg=L.control({position:'bottomleft'});lg.onAdd=()=>{const d=L.DomUtil.create('div','maplg');d.innerHTML='<span><i style="background:#0B4F47;border-radius:50%"></i>Node (colour = AQI)</span><span><i style="background:rgba(214,69,65,.35);border:2px solid #D64541;border-radius:50%"></i>Drone hotspot, last 24 h</span><span><i style="border:3px solid #E08A1E;border-radius:50%"></i>Verified citizen report</span>';return d};lg.addTo(m)}}
 function mkChart(el,cfg){const c=new Chart(el,cfg);charts.push(c);return c}
 Chart.defaults.font.family='Barlow';Chart.defaults.color='#566B63';
 function gaugeSVG(v,max,label,unit,color){const p=Math.min(v/max,1),r=42,C=2*Math.PI*r*.75;
@@ -427,7 +446,7 @@ R.node=({id,tab='live'})=>{const n=nodeById(id);if(!n){go('overview');return}
  if(tab==='live'){T.innerHTML=`<div class="gauges" id="ng"></div><div class="grid g3" style="margin-top:16px"><div class="span2"><h3 style="font-size:17px;margin-bottom:6px">Live telemetry</h3><div class="chartbox"><canvas id="ntel"></canvas></div></div>
   <div><h3 style="font-size:17px;margin-bottom:6px">Satellite map and drone hotspots</h3><div id="nmap" class="map short"></div>${droneVideo(n)}</div></div>`;
   const m=mkMap('nmap',[n.lat,n.lng],16);L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(m);
-  L.circleMarker([n.lat,n.lng],{radius:10,color:'#fff',weight:2,fillColor:'#0B4F47',fillOpacity:1}).addTo(m).bindPopup(esc(n.name));n.hotspots.forEach(h=>L.circle([h.lat,h.lng],{radius:35,color:'#ef4444',fillOpacity:.4}).addTo(m).bindPopup(esc(h.label)));
+  m.setView([n.lat,n.lng],15);nodeMarkers(m,null,{});
   window._tel=mkChart(document.getElementById('ntel'),{type:'line',data:{labels:n.hist.map(x=>new Date(x.t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})),datasets:[{label:'PM2.5',data:n.hist.map(x=>x.pm25),borderColor:'#E08A1E',tension:.3,pointRadius:0},{label:'PM10',data:n.hist.map(x=>x.pm10),borderColor:'#0B4F47',tension:.3,pointRadius:0},{label:'AQI',data:n.hist.map(x=>x.aqi),borderColor:'#D64541',borderDash:[5,4],tension:.3,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false}}})}
  if(tab==='aqi'){const a=aqiOf(n.r);T.innerHTML=`<div class="grid g2"><div><div class="chartbox"><canvas id="nsub"></canvas></div></div><div><h3 style="font-size:20px">Dominant pollutant: ${PN[a.dom]}</h3><p class="muted">AQI is the highest sub-index among PM2.5, PM10, NO2, CO and O3 (US EPA 2024 breakpoints).</p><div class="advice" style="margin-top:6px">${advice(a.aqi).map(x=>`<span class="tag t-info" style="font-size:13px">${x}</span>`).join(' ')}</div>
   <table class="tbl" style="margin-top:12px"><tr><th>Pollutant</th><th>Now</th><th>Sub-index</th></tr>${Object.keys(a.s).map(k=>`<tr><td>${PN[k]}</td><td>${n.r[k].toFixed(1)}</td><td>${a.s[k]}</td></tr>`).join('')}</table></div></div>`;
@@ -462,32 +481,122 @@ R.summary=({id,mode='24h',day='overall',hz=12})=>{
  const f=forecast(n,hz);mkChart(document.getElementById('sfc'),{type:'line',data:{labels:f.map(x=>String(x.h).padStart(2,'0')+':00'),datasets:[{data:f.map(x=>x.v),borderColor:'#8A5CC2',borderDash:[5,4],tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}})};
 
 /* ---------- Navigation with mask alerts ---------- */
+/* ============================================================
+   CLEAN-AIR NAVIGATION (Google-Maps-style, avoids high-AQI areas)
+   Routing: OSRM (FOSSGIS / project-osrm) for road routes and turn-by-turn,
+   Valhalla (FOSSGIS) for routes that exclude polluted zones.
+   Search: Nominatim (OpenStreetMap).
+   ============================================================ */
+const OSRM={car:['https://routing.openstreetmap.de/routed-car/route/v1/driving/','https://router.project-osrm.org/route/v1/driving/'],
+  bike:['https://routing.openstreetmap.de/routed-bike/route/v1/driving/'],foot:['https://routing.openstreetmap.de/routed-foot/route/v1/driving/']};
+const VALHALLA='https://valhalla1.openstreetmap.de/route';
+const COSTING={car:'auto',bike:'bicycle',foot:'pedestrian'};
+let NV={from:null,to:null,routes:[],sel:0,zones:[],layers:[],drive:null,watch:null,lastMask:0};
+async function fetchJSON(url,ms=12000){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal});if(!r.ok)throw new Error(r.status);return await r.json()}finally{clearTimeout(t)}}
+const DIRS=['north','north-east','east','south-east','south','south-west','west','north-west'];
+function arrow(t,m){if(t==='arrive')return '⚑';if(t==='depart')return '●';if(t==='roundabout'||t==='rotary')return '⟳';return {left:'↰',right:'↱','sharp left':'↰','sharp right':'↱','slight left':'↖','slight right':'↗',uturn:'↶',straight:'↑'}[m]||'↑'}
+function osrmText(s){const m=s.maneuver,t=m.type,mod=m.modifier||'',road=s.name?` onto ${s.name}`:'';
+ if(t==='depart')return `Head ${DIRS[Math.round((m.bearing_after||0)/45)%8]}${s.name?` on ${s.name}`:''}`;
+ if(t==='arrive')return 'Arrive at your destination';
+ if(t==='roundabout'||t==='rotary')return `At the roundabout, take exit ${m.exit||1}${road}`;
+ if(t==='merge')return `Merge${road}`;if(t==='on ramp')return `Take the ramp${road}`;if(t==='off ramp')return `Take the exit${road}`;
+ if(t==='fork')return `Keep ${mod||'straight'} at the fork${road}`;if(t==='end of road')return `At the end of the road, turn ${mod}${road}`;
+ if(t==='continue'||t==='new name')return `Continue${mod&&mod!=='straight'?' '+mod:''}${road}`;
+ if(mod==='straight')return `Go straight${road}`;return `Turn ${mod}${road}`}
+function decodePoly(str,p=6){let i=0,lat=0,lng=0,out=[],f=Math.pow(10,p);while(i<str.length){let b,s=0,r=0;do{b=str.charCodeAt(i++)-63;r|=(b&31)<<s;s+=5}while(b>=32);lat+=(r&1)?~(r>>1):(r>>1);s=0;r=0;do{b=str.charCodeAt(i++)-63;r|=(b&31)<<s;s+=5}while(b>=32);lng+=(r&1)?~(r>>1):(r>>1);out.push([lat/f,lng/f])}return out}
+async function osrmRoute(mode,pts,alts){for(const base of OSRM[mode]){try{
+  const j=await fetchJSON(`${base}${pts.map(p=>p[1].toFixed(6)+','+p[0].toFixed(6)).join(';')}?overview=full&geometries=geojson&steps=true&alternatives=${alts?'true':'false'}`);
+  if(j.code!=='Ok'||!j.routes?.length)continue;
+  return j.routes.map(r=>{const coords=r.geometry.coordinates.map(c=>[c[1],c[0]]);const steps=[];r.legs.forEach(l=>l.steps.forEach(s=>{if(s.maneuver.type==='arrive'&&steps.some(x=>x.type==='arrive'))return;steps.push({text:osrmText(s),dist:s.distance,type:s.maneuver.type,icon:arrow(s.maneuver.type,s.maneuver.modifier),loc:[s.maneuver.location[1],s.maneuver.location[0]]})}));
+   const via=r.legs.map(l=>l.summary).filter(Boolean).join(', ');return {coords,dur:r.duration,dist:r.distance,steps,via,src:'OSRM'}})}catch(e){}}return null}
+async function valhallaRoute(mode,a,b,polys){try{const q={locations:[{lat:a[0],lon:a[1]},{lat:b[0],lon:b[1]}],costing:COSTING[mode],exclude_polygons:polys,alternates:1,directions_options:{units:'kilometers',language:'en-US'}};
+  const j=await fetchJSON(`${VALHALLA}?json=${encodeURIComponent(JSON.stringify(q))}`);const trips=[j.trip,...(j.alternates||[]).map(x=>x.trip)].filter(Boolean);
+  return trips.map(t=>{const coords=[].concat(...t.legs.map(l=>decodePoly(l.shape)));const steps=[];t.legs.forEach(l=>l.maneuvers.forEach(m=>{const loc=coords[Math.min(m.begin_shape_index,coords.length-1)];steps.push({text:m.instruction,dist:m.length*1000,type:m.type===4||m.type===5||m.type===6?'arrive':'turn',icon:m.type===4||m.type===5||m.type===6?'⚑':(/left/i.test(m.instruction)?'↰':/right/i.test(m.instruction)?'↱':'↑'),loc})}));
+   const names=[...new Set(t.legs[0].maneuvers.flatMap(m=>m.street_names||[]))].slice(0,2).join(', ');return {coords,dur:t.summary.time,dist:t.summary.length*1000,steps,via:names,src:'Valhalla'}})}catch(e){return null}}
+function dronePoints(maxH=24){const lim=Date.now()-maxH*3600e3;return S.surveys.filter(s=>(s.ts||0)>=lim).flatMap(s=>(s.points||[]).map(p=>({...p,survey:s.id,zone:s.zone,time:s.time})))}
+function aqiZones(thr,a,b){const z=[];S.nodes.forEach(n=>{const q=nodeAqi(n);if(q>thr)z.push({lat:n.lat,lng:n.lng,r:500,label:`${n.name}: AQI ${q}`})});
+ dronePoints().forEach(p=>z.push({lat:p.lat,lng:p.lng,r:280,label:`Drone hotspot: ${p.label}`}));
+ S.nodes.forEach(n=>n.hotspots.forEach(h=>z.push({lat:h.lat,lng:h.lng,r:220,label:h.label})));
+ return z.filter(x=>hav(x.lat,x.lng,a[0],a[1])*1000>x.r+150&&hav(x.lat,x.lng,b[0],b[1])*1000>x.r+150)}
+function circlePoly(z,n=12){const out=[];for(let i=0;i<=n;i++){const t=i/n*2*Math.PI;out.push([+(z.lng+(z.r/111320/Math.cos(z.lat*Math.PI/180))*Math.cos(t)).toFixed(6),+(z.lat+(z.r/110540)*Math.sin(t)).toFixed(6)])}return out}
+function offsetPt(lat,lng,brg,m){const d=m/6371000,b=brg*Math.PI/180,p1=lat*Math.PI/180,l1=lng*Math.PI/180;const p2=Math.asin(Math.sin(p1)*Math.cos(d)+Math.cos(p1)*Math.sin(d)*Math.cos(b));const l2=l1+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(p1),Math.cos(d)-Math.sin(p1)*Math.sin(p2));return [p2*180/Math.PI,l2*180/Math.PI]}
+function bearing(a,b){const t=x=>x*Math.PI/180;const y=Math.sin(t(b[1]-a[1]))*Math.cos(t(b[0])),x=Math.cos(t(a[0]))*Math.sin(t(b[0]))-Math.sin(t(a[0]))*Math.cos(t(b[0]))*Math.cos(t(b[1]-a[1]));return (Math.atan2(y,x)*180/Math.PI+360)%360}
+function scoreRoute(rt){const p=rt.coords;let total=0;const d=[0];for(let i=1;i<p.length;i++){total+=hav(p[i-1][0],p[i-1][1],p[i][0],p[i][1])*1000;d.push(total)}
+ rt.segs=[];let s=0;for(let i=1;i<p.length;i++){if(d[i]-d[s]>=150||i===p.length-1){const mid=p[Math.floor((s+i)/2)];rt.segs.push({from:s,to:i,a:aqiAt(mid[0],mid[1]),len:d[i]-d[s]});s=i}}
+ total=total||1;rt.avg=Math.round(rt.segs.reduce((x,g)=>x+g.a*g.len,0)/total);rt.max=Math.max(...rt.segs.map(g=>g.a));rt.exp=Math.round(rt.segs.reduce((x,g)=>x+g.a*(rt.dur*g.len/total)/60,0));
+ rt.bad=rt.segs.filter(g=>g.a>S.settings.alertAqi).reduce((x,g)=>x+g.len,0);
+ rt.steps.forEach(st=>{let bi=0,bd=1e9;p.forEach((q,i)=>{const dd=Math.abs(q[0]-st.loc[0])+Math.abs(q[1]-st.loc[1]);if(dd<bd){bd=dd;bi=i}});st.idx=bi})}
+function hazardNear(rt,z){let best=1e9,idx=0;rt.coords.forEach((q,i)=>{const dd=hav(q[0],q[1],z.lat,z.lng)*1000;if(dd<best){best=dd;idx=i}});return best<z.r?idx:-1}
+function fmtD(m){return m>=1000?(m/1000).toFixed(1)+' km':Math.round(m/10)*10+' m'}
+function fmtT(s){const m=Math.round(s/60);return m>=60?`${Math.floor(m/60)} h ${m%60} min`:`${m} min`}
+
+R.navigate=()=>{NV={from:null,to:null,routes:[],sel:0,zones:[],layers:[],drive:null,watch:null,lastMask:0};
+ V_(`<div class="grid g3"><div class="card"><h3>Plan a trip</h3>
+ <div class="row" style="gap:6px">${[['car','Car'],['bike','Bicycle'],['foot','Walk']].map(([k,l],i)=>`<label class="tag ${i?'t-gray':'t-info'}" style="cursor:pointer;padding:4px 12px"><input type="radio" name="nv-mode" value="${k}" ${i?'':'checked'} style="margin-right:5px" onchange="document.querySelectorAll('[name=nv-mode]').forEach(r=>r.parentNode.className='tag '+(r.checked?'t-info':'t-gray'))">${l}</label>`).join('')}</div>
+ <label class="f">From</label><div class="srch"><input class="in" id="nv-from" placeholder="Search a place or click the map" autocomplete="off" oninput="nvSearch('from')"><div class="sugg" id="sg-from"></div></div>
+ <button class="btn o s" style="margin-top:6px" onclick="nvMyLoc()">Use my location</button>
+ <label class="f">To</label><div class="srch"><input class="in" id="nv-to" placeholder="Search a place or click the map" autocomplete="off" oninput="nvSearch('to')"><div class="sugg" id="sg-to"></div></div>
+ <div class="chk" style="margin-top:10px"><label><input type="checkbox" id="nv-avoid" checked> Avoid polluted areas (AQI over <b id="nv-thrv">${S.settings.alertAqi}</b>)</label></div>
+ <input type="range" id="nv-thr" min="100" max="250" step="10" value="${S.settings.alertAqi}" style="width:100%" oninput="document.getElementById('nv-thrv').textContent=this.value">
+ <button class="btn" style="width:100%;margin-top:8px" onclick="findRoutes()"><i class="fa-solid fa-route"></i>Find routes</button>
+ <div id="nv-alert" style="margin-top:12px"></div><div id="nv-res" style="margin-top:4px;display:grid;gap:8px"></div></div>
+ <div class="span2"><div class="card"><div id="nvmap" class="map tall"></div>
+ <div class="row" style="margin-top:10px;justify-content:space-between"><div class="row small"><span class="lg" style="background:#1E9E6A"></span>Good<span class="lg" style="background:#C9A20C"></span>Moderate<span class="lg" style="background:#E08A1E"></span>Sensitive<span class="lg" style="background:#D64541"></span>Unhealthy<span class="lg" style="background:#8A5CC2"></span>Very unhealthy<span class="lg ring"></span>Avoided zone</div>
+ <div class="row" id="nv-go" style="display:none"><button class="btn g s" onclick="nvPreview()">Preview drive</button><button class="btn s" onclick="nvStart()">Start navigation</button></div></div></div>
+ <div class="card" id="nv-live" style="margin-top:16px;display:none"></div>
+ <div class="card" id="nv-steps" style="margin-top:16px;display:none"></div></div></div>`);
+ const m=mkMap('nvmap',[23.78,90.40],12);nodeMarkers(m);window._nvmap=m;
+ m.on('click',e=>{const p=[e.latlng.lat,e.latlng.lng];if(!NV.from){nvSet('from',p,'Point on map')}else{nvSet('to',p,'Point on map');findRoutes()}})};
+function nvPin(which){NV.layers=NV.layers.filter(l=>{if(l._pin===which){window._nvmap.removeLayer(l);return false}return true});const p=NV[which];if(!p)return;
+ const k=L.circleMarker(p,{radius:9,color:'#fff',weight:3,fillColor:which==='from'?'#1E9E6A':'#D64541',fillOpacity:1}).addTo(window._nvmap).bindTooltip(which==='from'?'Start':'Destination',{permanent:true,direction:'top'});k._pin=which;NV.layers.push(k)}
+function nvSet(which,p,label){NV[which]=p;const i=document.getElementById('nv-'+which);if(i&&label)i.value=label;nvPin(which)}
+let sgT=null;
+function nvSearch(which){clearTimeout(sgT);const q=document.getElementById('nv-'+which).value.trim();const box=document.getElementById('sg-'+which);if(q.length<3){box.innerHTML='';return}
+ sgT=setTimeout(async()=>{const local=PLACES.filter(p=>p[0].toLowerCase().includes(q.toLowerCase())).map(p=>({n:p[0],d:'Known place',lat:p[1],lng:p[2]}));
+  let web=[];try{const j=await fetchJSON(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=bd,in&q=${encodeURIComponent(q)}`,8000);web=j.map(x=>({n:x.name||x.display_name.split(',')[0],d:x.display_name.split(',').slice(1,3).join(','),lat:+x.lat,lng:+x.lon}))}catch(e){}
+  const all=[...local,...web].slice(0,6);window._sg=all;box.innerHTML=all.length?all.map((x,k)=>`<button onclick="nvPick('${which}',${k})"><b>${esc(x.n)}</b><span>${esc(x.d)}</span></button>`).join(''):'<div class="small muted" style="padding:8px">No match. Try another name or click the map.</div>'},350)}
+function nvPick(which,k){const x=window._sg[k];document.getElementById('sg-'+which).innerHTML='';nvSet(which,[x.lat,x.lng],x.n);window._nvmap.setView([x.lat,x.lng],14)}
+function nvMyLoc(){if(!navigator.geolocation){toast('Location is not available in this browser.','bad');return}navigator.geolocation.getCurrentPosition(p=>{nvSet('from',[p.coords.latitude,p.coords.longitude],'My location');window._nvmap.setView(NV.from,14)},()=>toast('Location permission was refused. Search a place instead.','bad'),{enableHighAccuracy:true,timeout:10000})}
 const PLACES=[['Farmgate',23.7577,90.3897],['Motijheel',23.7330,90.4172],['Uttara',23.8759,90.3795],['Gulshan 1',23.7806,90.4166],['Mirpur 10',23.8069,90.3687],['Jatrabari',23.7104,90.4349],['Dhanmondi',23.7461,90.3742],['Tejgaon',23.7639,90.4068]];
-let navState={from:null,to:null};
-R.navigate=()=>{V_(`<div class="grid g3"><div class="card"><h3>Plan a trip</h3>
- <label class="f">From</label><div class="row"><select class="in" id="nv-from" style="flex:1"><option value="">Pick a place or click the map</option>${PLACES.map((p,i)=>`<option value="${i}">${p[0]}</option>`).join('')}</select><button class="btn o s" onclick="useMyLoc()">My location</button></div>
- <label class="f">To</label><select class="in" id="nv-to"><option value="">Pick a place or click the map</option>${PLACES.map((p,i)=>`<option value="${i}">${p[0]}</option>`).join('')}</select>
- <p class="note">Tip: first map click sets the start, second sets the destination.</p><button class="btn" style="width:100%;margin-top:6px" onclick="findRoutes()"><i class="fa-solid fa-route"></i>Find routes</button>
- <div id="nv-alert" style="margin-top:12px"></div><div id="nv-res" style="margin-top:6px;display:grid;gap:8px"></div></div>
- <div class="card span2"><div id="nvmap" class="map tall"></div><p class="note" style="margin-top:8px">Each route is split into short stretches; every stretch gets its AQI from the nearest nodes. Exposure = sum of AQI × time on each stretch.</p></div></div>`);
- const m=mkMap('nvmap',[23.78,90.40],12);nodeMarkers(m);window._nvmap=m;window._nvlayers=[];navState={from:null,to:null};
- m.on('click',e=>{if(!navState.from){navState.from=[e.latlng.lat,e.latlng.lng];addPin(e.latlng,'Start')}else{navState.to=[e.latlng.lat,e.latlng.lng];addPin(e.latlng,'Destination');findRoutes()}})};
-function addPin(ll,t){const k=L.circleMarker(ll,{radius:8,color:'#fff',weight:2,fillColor:t==='Start'?'#1E9E6A':'#0E2A25',fillOpacity:1}).addTo(window._nvmap).bindTooltip(t,{permanent:true});window._nvlayers.push(k)}
-function useMyLoc(){if(!navigator.geolocation){toast('Location is not available in this browser.','bad');return}navigator.geolocation.getCurrentPosition(p=>{navState.from=[p.coords.latitude,p.coords.longitude];addPin(L.latLng(navState.from),'Start');toast('Start set to your location')},()=>toast('Location permission was refused. Pick a place instead.','bad'))}
-async function findRoutes(){const f=document.getElementById('nv-from').value,t=document.getElementById('nv-to').value;
- if(f!=='')navState.from=PLACES[f].slice(1);if(t!=='')navState.to=PLACES[t].slice(1);if(!navState.from||!navState.to){toast('Set both start and destination.','bad');return}
- window._nvlayers.forEach(l=>window._nvmap.removeLayer(l));window._nvlayers=[];addPin(L.latLng(navState.from),'Start');addPin(L.latLng(navState.to),'Destination');
- const [a,b]=[navState.from,navState.to];let routes=[];
- try{const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?alternatives=true&overview=full&geometries=geojson`);const j=await r.json();
-   routes=(j.routes||[]).map(x=>({coords:x.geometry.coordinates.map(c=>[c[1],c[0]]),dur:x.duration,dist:x.distance}))}catch(e){}
- if(!routes.length){const km=hav(a[0],a[1],b[0],b[1]);routes=[{coords:Array.from({length:21},(_,i)=>[a[0]+(b[0]-a[0])*i/20,a[1]+(b[1]-a[1])*i/20]),dur:km/18*3600,dist:km*1000,approx:true}];toast('Routing service not reachable; showing a straight-line estimate.')}
- routes.forEach(rt=>{const pts=rt.coords.filter((_,i)=>i%Math.max(1,Math.floor(rt.coords.length/30))===0);const aq=pts.map(p=>aqiAt(p[0],p[1]));rt.avg=Math.round(aq.reduce((s,x)=>s+x,0)/aq.length);rt.max=Math.max(...aq);rt.exp=Math.round(rt.avg*rt.dur/60)});
- const fastest=routes.reduce((x,y)=>y.dur<x.dur?y:x),cleanest=routes.reduce((x,y)=>y.exp<x.exp?y:x);
- routes.forEach(rt=>{const pl=L.polyline(rt.coords,{color:rt===cleanest?'#1E9E6A':'#8A9B95',weight:rt===cleanest?7:5,opacity:.9}).addTo(window._nvmap);window._nvlayers.push(pl)});window._nvmap.fitBounds(L.latLngBounds(routes[0].coords),{padding:[30,30]});
- document.getElementById('nv-res').innerHTML=routes.map((rt,i)=>`<div class="route ${rt===cleanest?'sel':''}"><div class="row" style="justify-content:space-between"><b>Route ${i+1}</b><span>${rt===cleanest?'<span class="tag t-ok">Cleanest</span> ':''}${rt===fastest?'<span class="tag t-info">Fastest</span>':''}</span></div>
- <span class="small">${Math.round(rt.dur/60)} min · ${(rt.dist/1000).toFixed(1)} km · average AQI ${rt.avg} · worst ${rt.max}</span></div>`).join('');
- const bad=cleanest.max>S.settings.alertAqi;document.getElementById('nv-alert').innerHTML=bad?`<div class="banner bad"><i class="fa-solid fa-head-side-mask"></i><div><b>Wear a mask on this trip.</b> Part of the route has AQI ${cleanest.max}. Keep windows closed in that stretch.</div></div>`:`<div class="banner info"><i class="fa-solid fa-leaf"></i><div>No stretch above AQI ${S.settings.alertAqi} on the cleanest route.</div></div>`;
- if(bad&&me)S.alerts.unshift({time:nowStr(),to:me.id,text:`Trip alert: wear a mask, route AQI up to ${cleanest.max}`});saveState()}
+async function findRoutes(){
+ if(!NV.from||!NV.to){toast('Set both start and destination: search, use your location, or click the map.','bad');return}
+ const mode=document.querySelector('[name=nv-mode]:checked').value,avoid=document.getElementById('nv-avoid').checked,thr=+document.getElementById('nv-thr').value;
+ nvStop();document.getElementById('nv-res').innerHTML='<div class="empty">Finding road routes…</div>';document.getElementById('nv-alert').innerHTML='';
+ const a=NV.from,b=NV.to;let routes=(await osrmRoute(mode,[a,b],true))||[];
+ NV.zones=avoid?aqiZones(thr,a,b):[];
+ if(avoid&&NV.zones.length){const polys=NV.zones.map(z=>circlePoly(z));const v=await valhallaRoute(mode,a,b,polys);
+  if(v&&v.length)v.forEach(r=>{r.avoids=true;routes.push(r)});
+  else if(routes.length){ // fallback: detour via points beside each polluted zone on the fastest route
+   const base=routes.reduce((x,y)=>y.dur<x.dur?y:x);const hits=NV.zones.map(z=>({z,i:hazardNear(base,z)})).filter(h=>h.i>=0).slice(0,2);
+   for(const h of hits){const i=h.i,c=base.coords,br=bearing(c[Math.max(0,i-3)],c[Math.min(c.length-1,i+3)]);
+    for(const side of [90,-90]){const via=offsetPt(h.z.lat,h.z.lng,(br+side+360)%360,h.z.r+700);const r=await osrmRoute(mode,[a,via,b],false);if(r&&r[0]){r[0].avoids=true;routes.push(r[0])}}}}}
+ if(!routes.length){document.getElementById('nv-res').innerHTML='';document.getElementById('nv-alert').innerHTML=`<div class="banner bad"><i class="fa-solid fa-triangle-exclamation"></i><div><b>Couldn't reach the routing service.</b> Check the internet connection. If you opened the file straight from your computer, run it from a web server instead (for example <code>python -m http.server</code>) or from your hosting.</div></div>`;return}
+ const seen=[];routes=routes.filter(r=>{const k=Math.round(r.dist/150)+'_'+Math.round(r.dur/60);if(seen.includes(k))return false;seen.push(k);return true}).slice(0,5);
+ routes.forEach(scoreRoute);const fastest=routes.reduce((x,y)=>y.dur<x.dur?y:x),cleanest=routes.reduce((x,y)=>y.exp<x.exp?y:x);
+ const rec=(cleanest.dur<=fastest.dur*1.4)?cleanest:fastest;routes.forEach(r=>{r.tags=[];if(r===rec)r.tags.push(['Recommended','t-ok']);if(r===fastest)r.tags.push(['Fastest','t-info']);if(r===cleanest&&r!==rec)r.tags.push(['Cleanest air','t-ok'])});
+ routes.sort((x,y)=>(y===rec)-(x===rec)||x.exp-y.exp);NV.routes=routes;NV.sel=0;nvDraw()}
+function nvDraw(){const m=window._nvmap;NV.layers=NV.layers.filter(l=>{if(l._pin)return true;m.removeLayer(l);return false});
+ NV.zones.forEach(z=>{const c=L.circle([z.lat,z.lng],{radius:z.r,color:'#D64541',weight:2,dashArray:'6 5',fillColor:'#D64541',fillOpacity:.1}).addTo(m).bindTooltip('Avoided: '+esc(z.label));NV.layers.push(c)});
+ NV.routes.forEach((r,i)=>{if(i===NV.sel)return;const pl=L.polyline(r.coords,{color:'#7F918B',weight:6,opacity:.7}).addTo(m).on('click',()=>{NV.sel=i;nvDraw()}).bindTooltip(`Route ${i+1}: ${fmtT(r.dur)}`);NV.layers.push(pl)});
+ const r=NV.routes[NV.sel];const casing=L.polyline(r.coords,{color:'#fff',weight:11,opacity:1}).addTo(m);NV.layers.push(casing);
+ r.segs.forEach(g=>{const pl=L.polyline(r.coords.slice(g.from,g.to+1),{color:cat(g.a)[3],weight:7,opacity:1}).addTo(m).bindTooltip(`AQI about ${g.a}`);NV.layers.push(pl)});
+ NV.layers.filter(l=>l._pin).forEach(l=>l.bringToFront());m.fitBounds(L.latLngBounds(r.coords),{padding:[40,40]});
+ document.getElementById('nv-res').innerHTML=NV.routes.map((x,i)=>`<div class="route ${i===NV.sel?'sel':''}" onclick="NV.sel=${i};nvDraw()"><div class="row" style="justify-content:space-between"><b style="font-size:18px">${fmtT(x.dur)}</b><span>${x.tags.map(t=>`<span class="tag ${t[1]}">${t[0]}</span>`).join(' ')}</span></div>
+  <div class="small">${fmtD(x.dist)}${x.via?' · via '+esc(x.via):''}</div><div class="small muted">Average AQI ${x.avg} · worst ${x.max}${x.bad?` · ${fmtD(x.bad)} above ${S.settings.alertAqi}`:''}${x.avoids?' · avoids polluted zones':''}</div></div>`).join('');
+ const bad=r.max>S.settings.alertAqi;document.getElementById('nv-alert').innerHTML=bad?`<div class="banner bad"><i class="fa-solid fa-head-side-mask"></i><div><b>Wear a mask on this trip.</b> ${fmtD(r.bad)} of this route has AQI above ${S.settings.alertAqi} (worst ${r.max}). Keep windows closed there.</div></div>`:`<div class="banner info"><i class="fa-solid fa-leaf"></i><div>No stretch above AQI ${S.settings.alertAqi} on this route.</div></div>`;
+ if(bad&&me)S.alerts.unshift({time:nowStr(),to:me.id,text:`Trip alert: wear a mask, route AQI up to ${r.max}`});
+ const st=document.getElementById('nv-steps');st.style.display='block';st.innerHTML=`<h3>Directions <span class="hint">${fmtT(r.dur)} · ${fmtD(r.dist)}</span></h3>${r.steps.map((s,i)=>{const a=r.segs.find(g=>s.idx>=g.from&&s.idx<=g.to)?.a||r.avg;return `<div class="step" id="st-${i}"><span class="ico">${s.icon}</span><div style="flex:1">${esc(s.text)}${a>S.settings.alertAqi?' <span class="tag t-bad">Mask</span>':''}</div><span class="small muted">${s.dist?fmtD(s.dist):''}</span></div>`}).join('')}`;
+ document.getElementById('nv-go').style.display='flex';saveState()}
+function nvStop(){if(NV.drive){clearInterval(NV.drive);NV.drive=null}if(NV.watch!=null&&navigator.geolocation){navigator.geolocation.clearWatch(NV.watch);NV.watch=null}if(NV.me){window._nvmap.removeLayer(NV.me);NV.me=null}const l=document.getElementById('nv-live');if(l)l.style.display='none'}
+function nvUpdatePos(p){const r=NV.routes[NV.sel];if(!r)return;const m=window._nvmap;if(!NV.me){NV.me=L.circleMarker(p,{radius:9,color:'#fff',weight:3,fillColor:'#2F7FC1',fillOpacity:1}).addTo(m)}else NV.me.setLatLng(p);
+ let bi=0,bd=1e9;r.coords.forEach((q,i)=>{const d=hav(q[0],q[1],p[0],p[1]);if(d<bd){bd=d;bi=i}});const next=r.steps.find(s=>s.idx>bi)||r.steps[r.steps.length-1];const dist=next?hav(p[0],p[1],next.loc[0],next.loc[1])*1000:0;
+ const a=aqiAt(p[0],p[1]),live=document.getElementById('nv-live');live.style.display='block';
+ live.innerHTML=`<div class="row" style="justify-content:space-between"><div class="row"><span class="ico big">${next?next.icon:'⚑'}</span><div><b style="font-size:20px">${next?esc(next.text):'You have arrived'}</b><br><span class="muted">in ${fmtD(dist)}${bd*1000>80?' · off route, recalculating is advised':''}</span></div></div><div class="row">${aqiBadge(a)}<button class="btn r s" onclick="nvStop()">Stop</button></div></div>
+ ${a>S.settings.alertAqi?`<div class="banner bad" style="margin:10px 0 0"><i class="fa-solid fa-head-side-mask"></i><div><b>Polluted stretch.</b> Wear your mask and close the windows.</div></div>`:''}`;
+ document.querySelectorAll('.step').forEach(e=>e.classList.remove('now'));const k=r.steps.indexOf(next);const se=document.getElementById('st-'+k);if(se)se.classList.add('now');
+ if(a>S.settings.alertAqi&&Date.now()-NV.lastMask>300000){NV.lastMask=Date.now();toast(`Entering AQI ${a}: wear a mask and close windows.`,'bad')}}
+function nvPreview(){nvStop();const r=NV.routes[NV.sel];let i=0;const stepN=Math.max(1,Math.floor(r.coords.length/120));NV.drive=setInterval(()=>{if(i>=r.coords.length){nvStop();toast('Preview finished');return}nvUpdatePos(r.coords[i]);i+=stepN},450)}
+function nvStart(){if(!navigator.geolocation){toast('Location is not available in this browser.','bad');return}nvStop();NV.watch=navigator.geolocation.watchPosition(p=>nvUpdatePos([p.coords.latitude,p.coords.longitude]),()=>toast('Location permission was refused.','bad'),{enableHighAccuracy:true,maximumAge:3000})}
 
 /* ---------- Registered user pages ---------- */
 R.myair=()=>{const n=nodeById(me.home)||S.nodes[0];const loc=me.lat?[me.lat,me.lng]:[n.lat,n.lng];const a=aqiAt(loc[0],loc[1]);const lim=me.sensitive?S.settings.sensitiveAqi:S.settings.alertAqi;
@@ -523,12 +632,15 @@ R.coord=()=>{const mine=S.nodes.filter(n=>me.nodes.includes(n.id));const tk=S.ti
  <div class="card" style="margin-bottom:16px"><h3>My nodes</h3>${mine.length?`<div class="grid g3">${mine.map(n=>`<div class="ncard" onclick="go('node',{id:'${n.id}'})"><span class="id">${n.id} · ${n.zone}</span><h4>${esc(n.name)}</h4><div class="row" style="justify-content:space-between">${aqiBadge(nodeAqi(n))}${openTicket(n)?'<span class="tag t-warn">Ticket open</span>':'<span class="tag t-ok">Healthy</span>'}</div></div>`).join('')}</div>`:'<div class="empty">The admin has not assigned nodes to you yet.</div>'}</div>
  <div class="grid g2"><div class="card"><h3>Repair and emergency tickets</h3>${listOr(tk.map(t=>`<div class="list-item"><div><b class="${t.type==='Emergency'?'':''}">${t.type}</b> · ${esc(nodeById(t.nodeId)?.name)}<br><span class="small">${esc(t.details)}</span><br><span class="small muted">${t.time}</span></div>${t.status==='open'?`<button class="btn s" onclick="solve('${t.id}')">Mark solved</button>`:'<span class="tag t-ok">Solved</span>'}</div>`),'No tickets for your nodes.')}</div>
  <div class="card"><h3>Survey requests assigned to me</h3>${listOr(rq.map(r=>`<div class="list-item"><div><b>${esc(r.area)}</b><br><span class="small">${esc(r.reason)}</span></div><button class="btn s" onclick="doneReq('${r.id}')">Mark surveyed</button></div>`),'No survey requests assigned to you.')}</div></div>
- <div class="card" style="margin-top:16px"><h3>Upload a drone survey</h3><div class="grid g3"><div><label class="f">Zone</label><select class="in" id="ds-zone">${[...new Set(S.nodes.map(n=>n.zone))].map(z=>`<option>${z}</option>`).join('')}</select></div><div><label class="f">Hotspots marked</label><input class="in" id="ds-hs" type="number" min="0" value="1"></div><div><label class="f">Video file</label><input class="in" id="ds-file" type="file" accept="video/*"></div></div>
+ <div class="card" style="margin-top:16px"><h3>Upload a drone survey</h3><div class="grid g3"><div><label class="f">Zone</label><select class="in" id="ds-zone">${[...new Set(S.nodes.map(n=>n.zone))].map(z=>`<option>${z}</option>`).join('')}</select></div><div><label class="f">Hotspots marked</label><input class="in" id="ds-hs" type="number" min="0" value="0" readonly></div><div><label class="f">Video file</label><input class="in" id="ds-file" type="file" accept="video/*"></div></div>
+ <label class="f">Hotspots: click the map where the drone found high readings</label><div id="dsmap" class="map short"></div><div id="ds-pts" class="small" style="margin-top:6px"></div>
  <label class="f">Notes</label><textarea class="in" id="ds-notes" rows="2" placeholder="Where readings were high, what you saw"></textarea><div class="chk" style="margin-top:8px"><label><input type="checkbox" id="ds-dust"> Regular high AQI and dust seen in this area</label></div><button class="btn" style="margin-top:10px" onclick="saveSurvey()"><i class="fa-solid fa-upload"></i>Upload survey</button>
- <h3 style="margin-top:18px;font-size:17px">My surveys</h3>${listOr(S.surveys.filter(s=>s.coordId===me.id).map(s=>`<div class="list-item"><div><b>${s.zone}</b> · ${s.hotspots} hotspots<br><span class="small">${esc(s.notes)}</span></div><span class="small muted">${s.time}</span></div>`),'No surveys uploaded yet.')}</div>`)};
+ <h3 style="margin-top:18px;font-size:17px">My surveys</h3>${listOr(S.surveys.filter(s=>s.coordId===me.id).map(s=>`<div class="list-item"><div><b>${s.zone}</b> · ${s.hotspots} hotspots<br><span class="small">${esc(s.notes)}</span></div><span class="small muted">${s.time}</span></div>`),'No surveys uploaded yet.')}</div>`);
+ window._dsPts=[];const dm=mkMap('dsmap',[23.78,90.40],12);nodeMarkers(dm,null,{noLegend:true});dm.on('click',e=>{const label=prompt('What did the drone find here?','High PM10')||'High reading';window._dsPts.push({lat:+e.latlng.lat.toFixed(5),lng:+e.latlng.lng.toFixed(5),label});
+  L.circle(e.latlng,{radius:260,color:'#D64541',fillOpacity:.28}).addTo(dm);document.getElementById('ds-hs').value=window._dsPts.length;document.getElementById('ds-pts').textContent=window._dsPts.map((p,i)=>`${i+1}. ${p.label}`).join('   ')})};
 function solve(id){const t=S.tickets.find(x=>x.id===id);t.status='solved';saveState();toast('Ticket marked solved');go(cur.view,cur.p)}
 function doneReq(id){S.requests.find(x=>x.id===id).status='done';saveState();toast('Request marked surveyed');go(cur.view,cur.p)}
-function saveSurvey(){const f=document.getElementById('ds-file').files[0];const s={id:uid('D'),time:nowStr(),coordId:me.id,zone:document.getElementById('ds-zone').value,hotspots:+document.getElementById('ds-hs').value||0,notes:document.getElementById('ds-notes').value,video:f?f.name:'',highDust:document.getElementById('ds-dust').checked};if(f)s.videoUrl=URL.createObjectURL(f);S.surveys.unshift(s);autoAuthority();saveState();toast('Survey uploaded');go('coord')}
+function saveSurvey(){const f=document.getElementById('ds-file').files[0];const s={id:uid('D'),ts:Date.now(),points:(window._dsPts||[]).slice(),time:nowStr(),coordId:me.id,zone:document.getElementById('ds-zone').value,hotspots:(window._dsPts||[]).length,notes:document.getElementById('ds-notes').value,video:f?f.name:'',highDust:document.getElementById('ds-dust').checked};if(f)s.videoUrl=URL.createObjectURL(f);S.surveys.unshift(s);autoAuthority();saveState();toast('Survey uploaded');go('coord')}
 
 /* ---------- Traffic in-charge desk ---------- */
 R.trafficdesk=()=>{const mine=S.nodes.filter(n=>me.nodes.includes(n.id));V_(`<div class="grid g2">${mine.map(n=>`<div class="card"><h3>${esc(n.name)}</h3><div class="sig"><span class="lamp ${n.traffic.red===S.settings.redShort?'on':''}"></span><b>${n.traffic.red===S.settings.redShort?'Alert light on: clear the queue':'Normal'}</b></div><p class="small muted">Red wait now ${n.traffic.red} s · ${n.traffic.count} vehicles in view · AQI ${nodeAqi(n)}</p></div>`).join('')||'<div class="empty">No junctions assigned.</div>'}</div>
