@@ -514,10 +514,6 @@ async function valhallaRoute(mode,a,b,polys){try{const q={locations:[{lat:a[0],l
   return trips.map(t=>{const coords=[].concat(...t.legs.map(l=>decodePoly(l.shape)));const steps=[];t.legs.forEach(l=>l.maneuvers.forEach(m=>{const loc=coords[Math.min(m.begin_shape_index,coords.length-1)];steps.push({text:m.instruction,dist:m.length*1000,type:m.type===4||m.type===5||m.type===6?'arrive':'turn',icon:m.type===4||m.type===5||m.type===6?'⚑':(/left/i.test(m.instruction)?'↰':/right/i.test(m.instruction)?'↱':'↑'),loc})}));
    const names=[...new Set(t.legs[0].maneuvers.flatMap(m=>m.street_names||[]))].slice(0,2).join(', ');return {coords,dur:t.summary.time,dist:t.summary.length*1000,steps,via:names,src:'Valhalla'}})}catch(e){return null}}
 function dronePoints(maxH=24){const lim=Date.now()-maxH*3600e3;return S.surveys.filter(s=>(s.ts||0)>=lim).flatMap(s=>(s.points||[]).map(p=>({...p,survey:s.id,zone:s.zone,time:s.time})))}
-function aqiZones(thr,a,b){const z=[];S.nodes.forEach(n=>{const q=nodeAqi(n);if(q>thr)z.push({lat:n.lat,lng:n.lng,r:500,label:`${n.name}: AQI ${q}`})});
- dronePoints().forEach(p=>z.push({lat:p.lat,lng:p.lng,r:280,label:`Drone hotspot: ${p.label}`}));
- S.nodes.forEach(n=>n.hotspots.forEach(h=>z.push({lat:h.lat,lng:h.lng,r:220,label:h.label})));
- return z.filter(x=>hav(x.lat,x.lng,a[0],a[1])*1000>x.r+150&&hav(x.lat,x.lng,b[0],b[1])*1000>x.r+150)}
 function circlePoly(z,n=12){const out=[];for(let i=0;i<=n;i++){const t=i/n*2*Math.PI;out.push([+(z.lng+(z.r/111320/Math.cos(z.lat*Math.PI/180))*Math.cos(t)).toFixed(6),+(z.lat+(z.r/110540)*Math.sin(t)).toFixed(6)])}return out}
 function offsetPt(lat,lng,brg,m){const d=m/6371000,b=brg*Math.PI/180,p1=lat*Math.PI/180,l1=lng*Math.PI/180;const p2=Math.asin(Math.sin(p1)*Math.cos(d)+Math.cos(p1)*Math.sin(d)*Math.cos(b));const l2=l1+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(p1),Math.cos(d)-Math.sin(p1)*Math.sin(p2));return [p2*180/Math.PI,l2*180/Math.PI]}
 function bearing(a,b){const t=x=>x*Math.PI/180;const y=Math.sin(t(b[1]-a[1]))*Math.cos(t(b[0])),x=Math.cos(t(a[0]))*Math.sin(t(b[0]))-Math.sin(t(a[0]))*Math.cos(t(b[0]))*Math.cos(t(b[1]-a[1]));return (Math.atan2(y,x)*180/Math.PI+360)%360}
@@ -538,6 +534,7 @@ R.navigate=()=>{NV={from:null,to:null,routes:[],sel:0,zones:[],layers:[],drive:n
  <label class="f">To</label><div class="srch"><input class="in" id="nv-to" placeholder="Search a place or click the map" autocomplete="off" oninput="nvSearch('to')"><div class="sugg" id="sg-to"></div></div>
  <div class="chk" style="margin-top:10px"><label><input type="checkbox" id="nv-avoid" checked> Avoid polluted areas (AQI over <b id="nv-thrv">${S.settings.alertAqi}</b>)</label></div>
  <input type="range" id="nv-thr" min="100" max="250" step="10" value="${S.settings.alertAqi}" style="width:100%" oninput="document.getElementById('nv-thrv').textContent=this.value">
+ <label class="f">Keep this far from polluted areas</label><select class="in" id="nv-buf"><option value="100">100 m</option><option value="200" selected>200 m</option><option value="400">400 m</option></select>
  <button class="btn" style="width:100%;margin-top:8px" onclick="findRoutes()"><i class="fa-solid fa-route"></i>Find routes</button>
  <div id="nv-alert" style="margin-top:12px"></div><div id="nv-res" style="margin-top:4px;display:grid;gap:8px"></div></div>
  <div class="span2"><div class="card"><div id="nvmap" class="map tall"></div>
@@ -558,35 +555,82 @@ function nvSearch(which){clearTimeout(sgT);const q=document.getElementById('nv-'
 function nvPick(which,k){const x=window._sg[k];document.getElementById('sg-'+which).innerHTML='';nvSet(which,[x.lat,x.lng],x.n);window._nvmap.setView([x.lat,x.lng],14)}
 function nvMyLoc(){if(!navigator.geolocation){toast('Location is not available in this browser.','bad');return}navigator.geolocation.getCurrentPosition(p=>{nvSet('from',[p.coords.latitude,p.coords.longitude],'My location');window._nvmap.setView(NV.from,14)},()=>toast('Location permission was refused. Search a place instead.','bad'),{enableHighAccuracy:true,timeout:10000})}
 const PLACES=[['Farmgate',23.7577,90.3897],['Motijheel',23.7330,90.4172],['Uttara',23.8759,90.3795],['Gulshan 1',23.7806,90.4166],['Mirpur 10',23.8069,90.3687],['Jatrabari',23.7104,90.4349],['Dhanmondi',23.7461,90.3742],['Tejgaon',23.7639,90.4068]];
+function aqiZones(thr,a,b,buf){const z=[];S.nodes.forEach(n=>{const q=nodeAqi(n);if(q>thr)z.push({lat:n.lat,lng:n.lng,r:500,label:`${n.name}: AQI ${q}`})});
+ dronePoints().forEach(p=>z.push({lat:p.lat,lng:p.lng,r:280,label:`Drone hotspot: ${p.label}`}));
+ S.nodes.forEach(n=>n.hotspots.forEach(h=>z.push({lat:h.lat,lng:h.lng,r:220,label:h.label})));
+ const inside=p=>x=>hav(x.lat,x.lng,p[0],p[1])*1000<=x.r+buf;
+ NV.endZones=z.filter(x=>inside(a)(x)||inside(b)(x));   // start or destination is inside: cannot be avoided, only warned
+ return z.filter(x=>!inside(a)(x)&&!inside(b)(x))}
+/* how much of a route runs inside (zone radius + safety buffer) */
+function zoneHits(rt,zones,buf){const p=rt.coords;let len=0;const hit=new Map();
+ for(let i=1;i<p.length;i++){const mid=[(p[i-1][0]+p[i][0])/2,(p[i-1][1]+p[i][1])/2];
+  for(const z of zones){if(hav(mid[0],mid[1],z.lat,z.lng)*1000<z.r+buf){len+=hav(p[i-1][0],p[i-1][1],p[i][0],p[i][1])*1000;if(!hit.has(z))hit.set(z,i);break}}}
+ rt.hitLen=Math.round(len);rt.hitN=hit.size;rt.hitZones=[...hit.entries()].sort((x,y)=>x[1]-y[1]).map(e=>({z:e[0],i:e[1]}))}
+function nearestIdx(rt,pt){let bi=0,bd=1e9;rt.coords.forEach((q,i)=>{const d=hav(q[0],q[1],pt[0],pt[1]);if(d<bd){bd=d;bi=i}});return bi}
+function routeKey(r){return Math.round(r.dist/120)+'_'+Math.round(r.dur/45)}
+/* Search for a road route that stays clear of every polluted zone.
+   Step 1, corridor sweep: try detour points to either side of the straight line (1.5, 3 and 4.5 km out).
+   Step 2, best-first repair: take the candidate that crosses the least, and add a detour point beside
+   the first zone it still crosses; repeat until a clean route is found or the request budget runs out. */
+async function avoidSearch(mode,a,b,zones,buf,cands){const keys=new Set(cands.map(routeKey));let budget=18;const clean=pt=>!zones.some(o=>hav(o.lat,o.lng,pt[0],pt[1])*1000<o.r+buf+150);
+ const add=async(list)=>{if(budget<=0)return null;budget--;const r=await osrmRoute(mode,[a,...list,b],false);if(!r||!r[0])return null;const nr=r[0];nr.vias=list;nr.avoids=true;zoneHits(nr,zones,buf);
+  if(keys.has(routeKey(nr)))return null;keys.add(routeKey(nr));cands.push(nr);return nr};
+ const mid=[(a[0]+b[0])/2,(a[1]+b[1])/2],br=bearing(a,b),span=hav(a[0],a[1],b[0],b[1])*1000;
+ for(const d of [Math.max(1200,span*.2),Math.max(2500,span*.4),Math.max(4000,span*.65)]){for(const side of [90,-90]){
+   let pt=offsetPt(mid[0],mid[1],(br+side+360)%360,d);if(!clean(pt))pt=offsetPt(mid[0],mid[1],(br+side+360)%360,d+700);if(!clean(pt))continue;
+   const nr=await add([pt]);if(nr&&nr.hitN===0)return cands}}
+ const expanded=new Set();
+ while(budget>0){const open=cands.filter(r=>!expanded.has(r)&&r.hitN>0).sort((x,y)=>x.hitLen-y.hitLen||x.dur-y.dur);if(!open.length)break;const best=open[0];expanded.add(best);
+  const first=best.hitZones[0];if(!first)continue;const z=first.z,i=first.i,c=best.coords,zbr=bearing(c[Math.max(0,i-4)],c[Math.min(c.length-1,i+4)]);
+  const vias=(best.vias||[]).map(v=>({pt:v,idx:nearestIdx(best,v)}));
+  for(const extra of [500,1400]){for(const side of [90,-90]){let pt=offsetPt(z.lat,z.lng,(zbr+side+360)%360,z.r+buf+extra);if(!clean(pt))continue;
+    const list=[...vias,{pt,idx:i}].sort((x,y)=>x.idx-y.idx).map(v=>v.pt);const nr=await add(list);if(nr&&nr.hitN===0)return cands}}}
+ return cands}
 async function findRoutes(){
  if(!NV.from||!NV.to){toast('Set both start and destination: search, use your location, or click the map.','bad');return}
- const mode=document.querySelector('[name=nv-mode]:checked').value,avoid=document.getElementById('nv-avoid').checked,thr=+document.getElementById('nv-thr').value;
- nvStop();document.getElementById('nv-res').innerHTML='<div class="empty">Finding road routes…</div>';document.getElementById('nv-alert').innerHTML='';
- const a=NV.from,b=NV.to;let routes=(await osrmRoute(mode,[a,b],true))||[];
- NV.zones=avoid?aqiZones(thr,a,b):[];
- if(avoid&&NV.zones.length){const polys=NV.zones.map(z=>circlePoly(z));const v=await valhallaRoute(mode,a,b,polys);
-  if(v&&v.length)v.forEach(r=>{r.avoids=true;routes.push(r)});
-  else if(routes.length){ // fallback: detour via points beside each polluted zone on the fastest route
-   const base=routes.reduce((x,y)=>y.dur<x.dur?y:x);const hits=NV.zones.map(z=>({z,i:hazardNear(base,z)})).filter(h=>h.i>=0).slice(0,2);
-   for(const h of hits){const i=h.i,c=base.coords,br=bearing(c[Math.max(0,i-3)],c[Math.min(c.length-1,i+3)]);
-    for(const side of [90,-90]){const via=offsetPt(h.z.lat,h.z.lng,(br+side+360)%360,h.z.r+700);const r=await osrmRoute(mode,[a,via,b],false);if(r&&r[0]){r[0].avoids=true;routes.push(r[0])}}}}}
- if(!routes.length){document.getElementById('nv-res').innerHTML='';document.getElementById('nv-alert').innerHTML=`<div class="banner bad"><i class="fa-solid fa-triangle-exclamation"></i><div><b>Couldn't reach the routing service.</b> Check the internet connection. If you opened the file straight from your computer, run it from a web server instead (for example <code>python -m http.server</code>) or from your hosting.</div></div>`;return}
- const seen=[];routes=routes.filter(r=>{const k=Math.round(r.dist/150)+'_'+Math.round(r.dur/60);if(seen.includes(k))return false;seen.push(k);return true}).slice(0,5);
- routes.forEach(scoreRoute);const fastest=routes.reduce((x,y)=>y.dur<x.dur?y:x),cleanest=routes.reduce((x,y)=>y.exp<x.exp?y:x);
- const rec=(cleanest.dur<=fastest.dur*1.4)?cleanest:fastest;routes.forEach(r=>{r.tags=[];if(r===rec)r.tags.push(['Recommended','t-ok']);if(r===fastest)r.tags.push(['Fastest','t-info']);if(r===cleanest&&r!==rec)r.tags.push(['Cleanest air','t-ok'])});
- routes.sort((x,y)=>(y===rec)-(x===rec)||x.exp-y.exp);NV.routes=routes;NV.sel=0;nvDraw()}
+ const mode=document.querySelector('[name=nv-mode]:checked').value,avoid=document.getElementById('nv-avoid').checked,thr=+document.getElementById('nv-thr').value,buf=+document.getElementById('nv-buf').value;
+ nvStop();const res=document.getElementById('nv-res');res.innerHTML='<div class="empty">Finding road routes…</div>';document.getElementById('nv-alert').innerHTML='';
+ const a=NV.from,b=NV.to;NV.buf=buf;NV.endZones=[];let routes=(await osrmRoute(mode,[a,b],true))||[];
+ NV.zones=avoid?aqiZones(thr,a,b,buf):[];
+ if(!routes.length){res.innerHTML='';document.getElementById('nv-alert').innerHTML=`<div class="banner bad"><i class="fa-solid fa-triangle-exclamation"></i><div><b>Couldn't reach the routing service.</b> Check the internet connection. If you opened the file straight from your computer, run it from a web server instead (for example <code>python -m http.server</code>) or from your hosting.</div></div>`;return}
+ routes.forEach(r=>zoneHits(r,NV.zones,buf));
+ if(avoid&&NV.zones.length&&!routes.some(r=>r.hitN===0)){
+  res.innerHTML='<div class="empty">Looking for a route around the polluted areas…</div>';
+  // 1) Valhalla with the zones on or near the fastest route as no-go polygons (public server allows about 10 km of polygon edge)
+  const fast=routes.reduce((x,y)=>y.dur<x.dur?y:x);const near=NV.zones.map(z=>({z,d:Math.min(...fast.coords.filter((_,k)=>k%3===0).map(q=>hav(q[0],q[1],z.lat,z.lng)*1000))-z.r})).sort((x,y)=>x.d-y.d);
+  let per=0;const polys=[];for(const n of near){const rr=n.z.r+buf+60;const len=2*Math.PI*rr;if(per+len>9500)break;per+=len;polys.push(circlePoly({lat:n.z.lat,lng:n.z.lng,r:rr},10))}
+  const v=await valhallaRoute(mode,a,b,polys);if(v)v.forEach(r=>{r.avoids=true;zoneHits(r,NV.zones,buf);routes.push(r)});
+  // 2) detour search on top of the best candidates
+  if(!routes.some(r=>r.hitN===0))routes=await avoidSearch(mode,a,b,NV.zones,buf,routes)}
+ const seen=new Set();routes=routes.filter(r=>{const k=routeKey(r);if(seen.has(k))return false;seen.add(k);return true});
+ routes.forEach(scoreRoute);const fastest=routes.reduce((x,y)=>y.dur<x.dur?y:x);
+ const clean=routes.filter(r=>r.hitN===0);let rec;
+ if(avoid&&NV.zones.length){rec=clean.length?clean.reduce((x,y)=>y.dur<x.dur?y:x):[...routes].sort((x,y)=>x.hitLen-y.hitLen||x.dur-y.dur)[0]}
+ else{const cleanest=routes.reduce((x,y)=>y.exp<x.exp?y:x);rec=(cleanest.dur<=fastest.dur*1.4)?cleanest:fastest}
+ NV.fullyClean=!avoid||!NV.zones.length||clean.length>0;
+ routes.forEach(r=>{r.tags=[];if(r===rec)r.tags.push(['Recommended','t-ok']);if(r===fastest)r.tags.push(['Fastest','t-info']);if(avoid&&NV.zones.length&&r.hitN===0)r.tags.push(['Avoids polluted areas','t-ok'])});
+ routes.sort((x,y)=>(y===rec)-(x===rec)||(y===fastest)-(x===fastest)||x.hitLen-y.hitLen||x.dur-y.dur);NV.routes=routes.slice(0,4);NV.sel=0;nvDraw()}
 function nvDraw(){const m=window._nvmap;NV.layers=NV.layers.filter(l=>{if(l._pin)return true;m.removeLayer(l);return false});
- NV.zones.forEach(z=>{const c=L.circle([z.lat,z.lng],{radius:z.r,color:'#D64541',weight:2,dashArray:'6 5',fillColor:'#D64541',fillOpacity:.1}).addTo(m).bindTooltip('Avoided: '+esc(z.label));NV.layers.push(c)});
- NV.routes.forEach((r,i)=>{if(i===NV.sel)return;const pl=L.polyline(r.coords,{color:'#7F918B',weight:6,opacity:.7}).addTo(m).on('click',()=>{NV.sel=i;nvDraw()}).bindTooltip(`Route ${i+1}: ${fmtT(r.dur)}`);NV.layers.push(pl)});
+ NV.zones.forEach(z=>{const c=L.circle([z.lat,z.lng],{radius:z.r,color:'#D64541',weight:2,fillColor:'#D64541',fillOpacity:.14,interactive:false}).addTo(m);NV.layers.push(c);
+  const k=L.circle([z.lat,z.lng],{radius:z.r+(NV.buf||0),color:'#D64541',weight:1.5,dashArray:'6 5',fill:false}).addTo(m).bindTooltip('Keep away: '+esc(z.label));NV.layers.push(k)});
+ NV.routes.forEach((r,i)=>{if(i===NV.sel)return;const pl=L.polyline(r.coords,{color:'#7F918B',weight:6,opacity:.65}).addTo(m).on('click',()=>{NV.sel=i;nvDraw()}).bindTooltip(`Route ${i+1}: ${fmtT(r.dur)}`);NV.layers.push(pl)});
  const r=NV.routes[NV.sel];const casing=L.polyline(r.coords,{color:'#fff',weight:11,opacity:1}).addTo(m);NV.layers.push(casing);
  r.segs.forEach(g=>{const pl=L.polyline(r.coords.slice(g.from,g.to+1),{color:cat(g.a)[3],weight:7,opacity:1}).addTo(m).bindTooltip(`AQI about ${g.a}`);NV.layers.push(pl)});
  NV.layers.filter(l=>l._pin).forEach(l=>l.bringToFront());m.fitBounds(L.latLngBounds(r.coords),{padding:[40,40]});
+ const zonesOn=NV.zones.length>0;
  document.getElementById('nv-res').innerHTML=NV.routes.map((x,i)=>`<div class="route ${i===NV.sel?'sel':''}" onclick="NV.sel=${i};nvDraw()"><div class="row" style="justify-content:space-between"><b style="font-size:18px">${fmtT(x.dur)}</b><span>${x.tags.map(t=>`<span class="tag ${t[1]}">${t[0]}</span>`).join(' ')}</span></div>
-  <div class="small">${fmtD(x.dist)}${x.via?' · via '+esc(x.via):''}</div><div class="small muted">Average AQI ${x.avg} · worst ${x.max}${x.bad?` · ${fmtD(x.bad)} above ${S.settings.alertAqi}`:''}${x.avoids?' · avoids polluted zones':''}</div></div>`).join('');
- const bad=r.max>S.settings.alertAqi;document.getElementById('nv-alert').innerHTML=bad?`<div class="banner bad"><i class="fa-solid fa-head-side-mask"></i><div><b>Wear a mask on this trip.</b> ${fmtD(r.bad)} of this route has AQI above ${S.settings.alertAqi} (worst ${r.max}). Keep windows closed there.</div></div>`:`<div class="banner info"><i class="fa-solid fa-leaf"></i><div>No stretch above AQI ${S.settings.alertAqi} on this route.</div></div>`;
- if(bad&&me)S.alerts.unshift({time:nowStr(),to:me.id,text:`Trip alert: wear a mask, route AQI up to ${r.max}`});
+  <div class="small">${fmtD(x.dist)}${x.via?' · via '+esc(x.via):''}</div>
+  <div class="small ${zonesOn&&x.hitN?'':'muted'}" style="${zonesOn&&x.hitN?'color:#A82F2B':''}">${zonesOn?(x.hitN?`Passes ${x.hitN} polluted area${x.hitN>1?'s':''} (${fmtD(x.hitLen)})`:'Stays clear of every polluted area')+' · ':''}average AQI ${x.avg} · worst ${x.max}</div></div>`).join('');
+ const endW=NV.endZones&&NV.endZones.length?`<div class="banner warn"><i class="fa-solid fa-location-dot"></i><div>Your start or destination is itself inside a polluted area (${esc(NV.endZones[0].label)}). Wear a mask there.</div></div>`:'';
+ let top='';if(zonesOn&&!NV.fullyClean)top=`<div class="banner bad"><i class="fa-solid fa-head-side-mask"></i><div><b>No road route fully avoids the polluted areas.</b> This route crosses the least: ${fmtD(r.hitLen)}. Wear a mask and keep windows closed there, or try a larger threshold.</div></div>`;
+ else if(zonesOn)top=`<div class="banner info"><i class="fa-solid fa-leaf"></i><div><b>This route stays clear of every polluted area</b> (at least ${NV.buf} m away).${r.avg>S.settings.alertAqi?` The general air on the way is still around AQI ${r.avg}, so sensitive people should wear a mask.`:''}</div></div>`;
+ else if(r.max>S.settings.alertAqi)top=`<div class="banner bad"><i class="fa-solid fa-head-side-mask"></i><div><b>Wear a mask on this trip.</b> ${fmtD(r.bad)} of this route has AQI above ${S.settings.alertAqi} (worst ${r.max}).</div></div>`;
+ else top=`<div class="banner info"><i class="fa-solid fa-leaf"></i><div>This route stays clear of the polluted areas.</div></div>`;
+ document.getElementById('nv-alert').innerHTML=top+endW;
+ if(me&&(r.hitN||r.max>S.settings.alertAqi))S.alerts.unshift({time:nowStr(),to:me.id,text:`Trip alert: wear a mask, route AQI up to ${r.max}`});
  const st=document.getElementById('nv-steps');st.style.display='block';st.innerHTML=`<h3>Directions <span class="hint">${fmtT(r.dur)} · ${fmtD(r.dist)}</span></h3>${r.steps.map((s,i)=>{const a=r.segs.find(g=>s.idx>=g.from&&s.idx<=g.to)?.a||r.avg;return `<div class="step" id="st-${i}"><span class="ico">${s.icon}</span><div style="flex:1">${esc(s.text)}${a>S.settings.alertAqi?' <span class="tag t-bad">Mask</span>':''}</div><span class="small muted">${s.dist?fmtD(s.dist):''}</span></div>`}).join('')}`;
  document.getElementById('nv-go').style.display='flex';saveState()}
+
 function nvStop(){if(NV.drive){clearInterval(NV.drive);NV.drive=null}if(NV.watch!=null&&navigator.geolocation){navigator.geolocation.clearWatch(NV.watch);NV.watch=null}if(NV.me){window._nvmap.removeLayer(NV.me);NV.me=null}const l=document.getElementById('nv-live');if(l)l.style.display='none'}
 function nvUpdatePos(p){const r=NV.routes[NV.sel];if(!r)return;const m=window._nvmap;if(!NV.me){NV.me=L.circleMarker(p,{radius:9,color:'#fff',weight:3,fillColor:'#2F7FC1',fillOpacity:1}).addTo(m)}else NV.me.setLatLng(p);
  let bi=0,bd=1e9;r.coords.forEach((q,i)=>{const d=hav(q[0],q[1],p[0],p[1]);if(d<bd){bd=d;bi=i}});const next=r.steps.find(s=>s.idx>bi)||r.steps[r.steps.length-1];const dist=next?hav(p[0],p[1],next.loc[0],next.loc[1])*1000:0;
