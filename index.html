@@ -52,11 +52,22 @@ button{font:inherit}
 .av{width:34px;height:34px;border-radius:50%;background:var(--gold);color:var(--dark);display:flex;align-items:center;justify-content:center;font-weight:700}
 /* main */
 .main{min-width:0}
-.top{display:flex;align-items:center;gap:14px;padding:16px 28px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:500}
-.top h1{font-size:26px}
-.top .sub{color:var(--muted);font-size:13.5px}
-.top .right{margin-left:auto;display:flex;gap:8px;align-items:center}
-.burger{display:none;background:none;border:0;font-size:20px;color:var(--teal);cursor:pointer}
+.top{position:relative;z-index:500;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;padding:18px 28px;overflow:hidden;
+  background:radial-gradient(ellipse 60% 120% at 50% 55%,#23A67F 0%,#128466 30%,#0B5A4F 62%,#0B4F47 100%);border-bottom:3px solid var(--gold)}
+.toplogo{grid-column:2;display:flex;align-items:center;justify-content:center;text-decoration:none}
+.neo{display:block;height:150px;width:auto;max-width:60vw;object-fit:contain;transition:transform .25s;
+  animation:neoGlow 3.2s ease-in-out infinite alternate}
+.toplogo:hover .neo{transform:scale(1.04)}
+.neo-text{font-family:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;font-weight:700;font-size:64px;letter-spacing:4px;color:#EFFFF8;
+  animation:neoText 3.2s ease-in-out infinite alternate}
+@keyframes neoGlow{from{filter:drop-shadow(0 0 4px rgba(255,255,255,.55)) drop-shadow(0 0 12px rgba(124,252,176,.75)) drop-shadow(0 0 26px rgba(201,151,28,.45))}
+  to{filter:drop-shadow(0 0 7px rgba(255,255,255,.8)) drop-shadow(0 0 22px rgba(124,252,176,1)) drop-shadow(0 0 48px rgba(242,201,76,.75))}}
+@keyframes neoText{from{text-shadow:0 0 6px rgba(80,240,180,.6),0 0 18px rgba(201,151,28,.35)}to{text-shadow:0 0 12px rgba(80,240,180,1),0 0 34px rgba(201,151,28,.65)}}
+.top .right{grid-column:3;justify-self:end;display:flex;gap:8px;align-items:center}
+.burger{grid-column:1;justify-self:start;display:none;background:none;border:0;font-size:24px;color:#EFFFF8;cursor:pointer}
+.phead{margin-bottom:18px}
+.phead h1{font-size:30px}
+.phead .sub{color:var(--muted);font-size:14.5px}
 .content{padding:24px 28px 60px;max-width:1400px}
 /* building blocks */
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
@@ -152,7 +163,7 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px}
   .burger{display:inline-block}
   .g2,.g3{grid-template-columns:1fr}.span2{grid-column:auto}
   .hero{grid-template-columns:1fr;gap:10px}.hero .big{font-size:84px}
-  .content{padding:18px 14px 50px}.top{padding:12px 14px}
+  .content{padding:18px 14px 50px}.top{padding:12px 14px}.neo{height:96px}.neo-text{font-size:38px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -161,12 +172,18 @@ label.f{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px}
 <div class="app">
   <aside class="side" id="side"></aside>
   <div class="main">
-    <div class="top">
+    <header class="top">
       <button class="burger" onclick="document.getElementById('side').classList.toggle('open')" aria-label="Menu">&#9776;</button>
-      <div><h1 id="ptitle">Overview</h1><div class="sub" id="psub"></div></div>
+      <a class="toplogo" href="#" onclick="go(home());return false" aria-label="BAYUROKKHI home">
+        <img src="Logo.png" alt="BAYUROKKHI" class="neo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+        <span class="neo-text" style="display:none">BAYUROKKHI</span>
+      </a>
       <div class="right" id="topright"></div>
+    </header>
+    <div class="content">
+      <div class="phead"><h1 id="ptitle">Overview</h1><div class="sub" id="psub"></div></div>
+      <div id="view"></div>
     </div>
-    <div class="content" id="view"></div>
   </div>
 </div>
 <div class="modal-bg" id="modalbg" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
@@ -345,7 +362,7 @@ function renderSide(){const r=role();let h=`<div class="brand"><img src="Logo.pn
   h+=`<div class="sidefoot">${me?`<div class="who"><div class="av">${esc(me.name[0])}</div><div><b style="color:#fff">${esc(me.name)}</b><br><span style="color:var(--gold)">${roleName(me.role)}</span></div></div><button class="btn o s" style="margin-top:10px;color:#CFE1DA;border-color:#2C6B60" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i>Sign out</button>`:
   `<button class="btn g" style="width:100%" onclick="authModal('in')"><i class="fa-solid fa-right-to-bracket"></i>Sign in</button><button class="btn o" style="width:100%;margin-top:8px;color:#CFE1DA;border-color:#2C6B60" onclick="authModal('up')">Create an account</button>`}</div>`;
   document.getElementById('side').innerHTML=h;
-  document.getElementById('topright').innerHTML=me?`<span class="tag t-gold">${roleName(me.role)}</span>`:`<button class="btn s" onclick="authModal('in')">Sign in</button>`}
+  document.getElementById('topright').innerHTML=me?`<span class="tag t-gold">${roleName(me.role)}</span>`:`<button class="btn g s" onclick="authModal('in')">Sign in</button>`}
 function roleName(r){return {admin:'Admin',coordinator:'Coordinator',traffic:'Traffic in-charge',user:'Registered user',guest:'Guest'}[r]}
 
 /* ============================================================
